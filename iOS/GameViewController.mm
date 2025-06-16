@@ -94,9 +94,24 @@
 
 - (void)handlePan:(UIPanGestureRecognizer *)gesture
 {
-    CGPoint translation = [gesture translationInView:self.view];
-    // Convert to Metal coordinates and pass to renderer
-    [_renderer handleMouseDragged:NSMakePoint(translation.x, translation.y)];
+    CGPoint location = [gesture locationInView:self.view];
+    FSPoint point = CGPointMake(location.x, location.y);
+
+    switch (gesture.state) {
+        case UIGestureRecognizerStateBegan:
+            [_renderer handleMouseDown:point];
+            break;
+        case UIGestureRecognizerStateChanged:
+            [_renderer handleMouseDragged:point];
+            break;
+        case UIGestureRecognizerStateEnded:
+        case UIGestureRecognizerStateCancelled:
+            [_renderer handleMouseUp:point];
+            break;
+        default:
+            break;
+    }
+
     [gesture setTranslation:CGPointZero inView:self.view];
 }
 
