@@ -98,6 +98,7 @@ set_target_properties(FinalStorm-iOS PROPERTIES
     XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++"
     XCODE_ATTRIBUTE_SDKROOT "iphoneos"
     XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphonesimulator iphoneos"
+    XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS "$(inherited)"
 )
 
 target_include_directories(FinalStorm-iOS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

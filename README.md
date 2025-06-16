@@ -27,6 +27,13 @@ To generate the Xcode project run:
 This script creates a `build` directory and produces `FinalStorm.xcodeproj`.
 Open the project in Xcode to build and run the client.
 
+When opening the generated project, ensure the **FinalStorm-iOS** target
+uses the iOS SDK. In Xcode's Build Settings, the **Base SDK** should be
+either *iPhoneOS* or *iPhoneSimulator*. If you see build errors such as
+`CVOpenGLESTexture.h` not found, the macOS SDK is selected by mistake.
+Adjust the SDK and verify the framework search paths do not reference
+`MacOSX.platform`.
+
 For a bare CMake invocation you can also run:
 
 ```bash

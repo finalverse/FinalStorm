@@ -6,6 +6,7 @@
 //
 
 #import "AppDelegate.h"
+#import "GameViewController.h"
 
 @interface AppDelegate ()
 
@@ -14,7 +15,18 @@
 @implementation AppDelegate
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    // Insert code here to initialize your application
+    NSRect frame = NSMakeRect(0, 0, 800, 600);
+    NSUInteger style = NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+                        NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable;
+    self.window = [[NSWindow alloc] initWithContentRect:frame
+                                              styleMask:style
+                                                backing:NSBackingStoreBuffered
+                                                  defer:NO];
+    self.window.title = @"FinalStorm";
+
+    GameViewController *vc = [[GameViewController alloc] initWithNibName:nil bundle:nil];
+    self.window.contentViewController = vc;
+    [self.window makeKeyAndOrderFront:nil];
 }
 
 
