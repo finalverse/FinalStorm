@@ -7,9 +7,26 @@
 
 #include <metal_stdlib>
 #include <simd/simd.h>
-#include "MetalShaderTypes.h"
 
 using namespace metal;
+
+// Use regular float3 instead of packed_float3 for vertex attributes
+typedef struct {
+    float3 position [[attribute(0)]];
+    float3 normal [[attribute(1)]];
+    float2 texCoord [[attribute(2)]];
+} VertexIn;
+
+typedef struct {
+    float4x4 viewProjectionMatrix;
+    float4x4 modelMatrix;
+    float3x3 normalMatrix;
+    float4 color;
+} Uniforms;
+
+// Buffer indices
+constant int BufferIndexMeshPositions = 0;
+constant int BufferIndexUniforms = 1;
 
 struct ColorInOut {
     float4 position [[position]];
@@ -18,12 +35,9 @@ struct ColorInOut {
     float2 texCoord;
 };
 
-vertex ColorInOut vertexShader(uint vertexID [[vertex_id]],
-                               constant Vertex* vertices [[buffer(BufferIndexMeshPositions)]],
+vertex ColorInOut vertexShader(VertexIn in [[stage_in]],
                                constant Uniforms& uniforms [[buffer(BufferIndexUniforms)]]) {
     ColorInOut out;
-    
-    Vertex in = vertices[vertexID];
     
     float4 position = float4(in.position, 1.0);
     out.worldPosition = (uniforms.modelMatrix * position).xyz;

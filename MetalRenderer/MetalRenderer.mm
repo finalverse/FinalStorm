@@ -7,7 +7,7 @@
 
 #import "MetalRenderer.h"
 #import "MetalShaderTypes.h"
-#include "../../Shared/Core/World/Entity.h"
+#include "../Shared/Core/World/Entity.h"
 #include <vector>
 #include <unordered_set>
 
@@ -78,7 +78,7 @@ using namespace FinalStorm;
     // Configure pipeline
     MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
     pipelineStateDescriptor.label = @"MyPipeline";
-    pipelineStateDescriptor.sampleCount = view.sampleCount;
+    pipelineStateDescriptor.rasterSampleCount = view.sampleCount;
     pipelineStateDescriptor.vertexFunction = vertexFunction;
     pipelineStateDescriptor.fragmentFunction = fragmentFunction;
     pipelineStateDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;

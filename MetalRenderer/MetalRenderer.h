@@ -2,8 +2,8 @@
 #import <MetalKit/MetalKit.h>
 #import <simd/simd.h>
 
-#include "../../Shared/Core/Math/Math.h"
-#include "../../Shared/Core/World/WorldManager.h"
+#include "../Shared/Core/Math/Math.h"
+#include "../Shared/Core/World/WorldManager.h"
 #include <memory>
 
 @interface MetalRenderer : NSObject<MTKViewDelegate>
