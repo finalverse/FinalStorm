@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <iostream>
 
 namespace FinalStorm {
 
@@ -124,17 +125,22 @@ void FinalverseClient::networkThread()
     if (m_disconnectCallback) m_disconnectCallback();
 }
 
-void FinalverseClient::sendPlayerPosition(const float3& position)
+void FinalverseClient::sendPlayerPosition(const float3& position, const float4& rotation)
 {
     // Create position update message
     struct PositionMessage {
         MessageType type = MessageType::PositionUpdate;
         float x, y, z;
+        float rx, ry, rz, rw;
     } msg;
     
     msg.x = position.x;
     msg.y = position.y;
     msg.z = position.z;
+    msg.rx = rotation.x;
+    msg.ry = rotation.y;
+    msg.rz = rotation.z;
+    msg.rw = rotation.w;
     
     sendMessage(MessageType::PositionUpdate, &msg, sizeof(msg));
 }
@@ -171,7 +177,7 @@ void FinalverseClient::processMessage(const Message& msg)
         case MessageType::EntityUpdate:
             // Parse entity update
             if (m_worldManager) {
-                // m_worldManager->processEntityUpdate(msg.data);
+                handleEntityUpdate(msg);
             }
             break;
             

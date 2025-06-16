@@ -17,19 +17,10 @@ using float3 = simd_float3;
 using float4 = simd_float4;
 using float4x4 = simd_float4x4;
 using float3x3 = simd_float3x3;
+using uint4 = simd_uint4;
 
-struct Transform {
-    float3 position;
-    float4 rotation; // Quaternion
-    float3 scale;
-    
-    Transform()
-        : position(0.0f),
-          rotation(0.0f, 0.0f, 0.0f, 1.0f),
-          scale(1.0f) {}
-    
-    float4x4 getMatrix() const;
-};
+// Forward declaration
+struct Transform;
 
 class Camera {
 public:
@@ -44,7 +35,7 @@ public:
     
     const float4x4& getViewMatrix() const { return m_viewMatrix; }
     const float4x4& getProjectionMatrix() const { return m_projectionMatrix; }
-    float4x4 getViewProjectionMatrix() const { return m_projectionMatrix * m_viewMatrix; }
+    float4x4 getViewProjectionMatrix() const { return simd_mul(m_projectionMatrix, m_viewMatrix); }
     
     const float3& getPosition() const { return m_position; }
     const float3& getTarget() const { return m_target; }
@@ -67,5 +58,24 @@ float4x4 matrix_identity();
 float4x4 matrix_translation(float3 translation);
 float4x4 matrix_rotation(float4 quaternion);
 float4x4 matrix_scale(float3 scale);
+float3x3 matrix3x3_upper_left(const float4x4& m);
+float4x4 matrix_orthographic(float left, float right, float bottom, float top, float nearZ, float farZ);
+
+// Helper functions for cleaner initialization
+inline float3 make_float3(float x, float y, float z) {
+    return simd_make_float3(x, y, z);
+}
+
+inline float3 make_float3(float v) {
+    return simd_make_float3(v, v, v);
+}
+
+inline float4 make_float4(float x, float y, float z, float w) {
+    return simd_make_float4(x, y, z, w);
+}
+
+inline float4 make_float4(float v) {
+    return simd_make_float4(v, v, v, v);
+}
 
 } // namespace FinalStorm

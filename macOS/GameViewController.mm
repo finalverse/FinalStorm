@@ -26,7 +26,7 @@
 
     _view = (MTKView *)self.view;
     _view.device = MTLCreateSystemDefaultDevice();
-    _view.backgroundColor = NSColor.blackColor;
+    _view.clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0); //black
 
     if(!_view.device)
     {
@@ -101,7 +101,9 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink,
             // Send player position
             auto camera = self->_renderer.camera;
             if (camera) {
-                self->_client->sendPlayerPosition(camera->getPosition());
+                // For now, send identity quaternion for rotation
+                FinalStorm::float4 rotation = simd_make_float4(0.0f, 0.0f, 0.0f, 1.0f);
+                self->_client->sendPlayerPosition(camera->getPosition(), rotation);
             }
         }
     });

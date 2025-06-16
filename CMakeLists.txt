@@ -1,10 +1,3 @@
-#
-#  CMakeLists.txt
-#  FinalStorm
-#
-#  Created by Wenyan Qin on 2025-06-15.
-#
-
 cmake_minimum_required(VERSION 3.20)
 project(FinalStorm)
 
@@ -15,18 +8,24 @@ set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment ver
 # Options
 option(BUILD_IOS "Build for iOS" OFF)
 
+# Set bundle identifier
+set(MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm")
+set(MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm")
+
 # Find frameworks
 find_library(METAL_FRAMEWORK Metal REQUIRED)
 find_library(METALKIT_FRAMEWORK MetalKit REQUIRED)
 find_library(QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
 find_library(COREFOUNDATION_FRAMEWORK CoreFoundation REQUIRED)
+find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 
 if(BUILD_IOS)
     find_library(UIKIT_FRAMEWORK UIKit REQUIRED)
     set(PLATFORM_FRAMEWORKS ${UIKIT_FRAMEWORK})
 else()
     find_library(COCOA_FRAMEWORK Cocoa REQUIRED)
-    set(PLATFORM_FRAMEWORKS ${COCOA_FRAMEWORK})
+    find_library(APPKIT_FRAMEWORK AppKit REQUIRED)
+    set(PLATFORM_FRAMEWORKS ${COCOA_FRAMEWORK} ${APPKIT_FRAMEWORK})
 endif()
 
 # Source files
@@ -35,6 +34,8 @@ set(SHARED_SOURCES
     Shared/Core/World/Entity.cpp
     Shared/Core/World/WorldManager.cpp
     Shared/Core/Networking/FinalverseClient.cpp
+    Shared/Core/Networking/MessageProtocol.cpp
+    Shared/Core/Audio/AudioEngine.cpp
 )
 
 set(SHARED_HEADERS
@@ -44,6 +45,7 @@ set(SHARED_HEADERS
     Shared/Core/World/WorldManager.h
     Shared/Core/Networking/FinalverseClient.h
     Shared/Core/Networking/MessageProtocol.h
+    Shared/Core/Audio/AudioEngine.h
     Shared/Renderer/Renderer.h
     Shared/Renderer/ShaderTypes.h
 )
@@ -55,12 +57,14 @@ if(BUILD_IOS)
         iOS/GameViewController.mm
         macOS/Renderer/MetalRenderer.mm
     )
+    set(INFO_PLIST_PATH ${CMAKE_CURRENT_SOURCE_DIR}/iOS/Info.plist)
 else()
     set(PLATFORM_SOURCES
         macOS/main.m
         macOS/GameViewController.mm
         macOS/Renderer/MetalRenderer.mm
     )
+    set(INFO_PLIST_PATH ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Info.plist)
 endif()
 
 # Metal shaders
@@ -68,30 +72,25 @@ set(METAL_SHADERS
     macOS/Renderer/Shaders.metal
 )
 
-# Create shader library
-add_custom_target(ShaderLibrary ALL)
-
-foreach(SHADER ${METAL_SHADERS})
-    get_filename_component(SHADER_NAME ${SHADER} NAME_WE)
-    set(SHADER_LIB ${CMAKE_CURRENT_BINARY_DIR}/${SHADER_NAME}.metallib)
-    
-    add_custom_command(
-        OUTPUT ${SHADER_LIB}
-        COMMAND xcrun -sdk ${SDK} metal -c ${CMAKE_CURRENT_SOURCE_DIR}/${SHADER} -o ${CMAKE_CURRENT_BINARY_DIR}/${SHADER_NAME}.air
-        COMMAND xcrun -sdk ${SDK} metallib ${CMAKE_CURRENT_BINARY_DIR}/${SHADER_NAME}.air -o ${SHADER_LIB}
-        DEPENDS ${SHADER}
-        COMMENT "Compiling Metal shader ${SHADER_NAME}"
-    )
-    
-    add_custom_target(${SHADER_NAME} DEPENDS ${SHADER_LIB})
-    add_dependencies(ShaderLibrary ${SHADER_NAME})
-endforeach()
-
-# Create executable
+# Create executable - THIS MUST COME BEFORE target_link_libraries
 add_executable(FinalStorm MACOSX_BUNDLE
     ${SHARED_SOURCES}
     ${SHARED_HEADERS}
     ${PLATFORM_SOURCES}
+    ${METAL_SHADERS}
+)
+
+# Set bundle properties
+set_target_properties(FinalStorm PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_INFO_PLIST ${INFO_PLIST_PATH}
+    MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm"
+    MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm"
+    MACOSX_BUNDLE_BUNDLE_VERSION "1.0"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.finalverse.finalstorm"
+    XCODE_ATTRIBUTE_CURRENT_PROJECT_VERSION "1"
+    XCODE_ATTRIBUTE_MARKETING_VERSION "1.0"
 )
 
 # Include directories
@@ -99,37 +98,42 @@ target_include_directories(FinalStorm PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Link libraries
+# Link libraries - THIS MUST COME AFTER add_executable
 target_link_libraries(FinalStorm
     ${METAL_FRAMEWORK}
     ${METALKIT_FRAMEWORK}
     ${QUARTZCORE_FRAMEWORK}
     ${COREFOUNDATION_FRAMEWORK}
+    ${FOUNDATION_FRAMEWORK}
     ${PLATFORM_FRAMEWORKS}
 )
 
-# Bundle configuration
+# Compile Metal shaders
+add_custom_command(
+    TARGET FinalStorm POST_BUILD
+    COMMAND xcrun -sdk macosx metal -c ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Renderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
+    COMMAND xcrun -sdk macosx metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air -o ${CMAKE_CURRENT_BINARY_DIR}/default.metallib
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources/
+    COMMENT "Compiling Metal shaders"
+)
+
+# Copy Info.plist
+configure_file(${INFO_PLIST_PATH} ${CMAKE_CURRENT_BINARY_DIR}/Info.plist COPYONLY)
+
+# Set deployment target for iOS
 if(BUILD_IOS)
     set_target_properties(FinalStorm PROPERTIES
-        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/iOS/Info.plist
-        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
         XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET "14.0"
-    )
-else()
-    set_target_properties(FinalStorm PROPERTIES
-        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Info.plist
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
     )
 endif()
 
-# Copy shader library to bundle
-add_custom_command(TARGET FinalStorm POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/*.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources/
+# Enable ARC
+set_target_properties(FinalStorm PROPERTIES
+    XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
 )
 
-# Copy resources
-file(GLOB_RECURSE RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/Resources/*")
-foreach(RESOURCE ${RESOURCES})
-    add_custom_command(TARGET FinalStorm POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy ${RESOURCE} $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources/
-    )
-endforeach()
+# Set C++ standard library
+set_target_properties(FinalStorm PROPERTIES
+    XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++"
+)

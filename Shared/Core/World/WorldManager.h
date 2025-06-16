@@ -22,6 +22,10 @@ struct GridCoordinate {
     bool operator==(const GridCoordinate& other) const {
         return x == other.x && y == other.y;
     }
+    
+    bool operator!=(const GridCoordinate& other) const {
+        return !(*this == other);
+    }
 };
 
 struct GridCoordinateHash {
@@ -60,12 +64,21 @@ public:
     void unloadGrid(const GridCoordinate& coord);
     
 private:
+    // Add these private methods
+    Grid* getGrid(const GridCoordinate& coord) const;
+    GridCoordinate getGridFromPosition(const float3& position) const;
+    void onPlayerGridChange(const GridCoordinate& oldGrid, const GridCoordinate& newGrid);
+    void generateGridContent(const GridCoordinate& coord, Grid& grid);
+    
     std::unordered_map<uint64_t, EntityPtr> m_entities;
     std::unordered_map<GridCoordinate, std::unique_ptr<Grid>, GridCoordinateHash> m_grids;
     
     // Player tracking
     EntityPtr m_playerEntity;
     GridCoordinate m_currentGrid;
+    
+    // Add this member variable
+    int m_viewDistance;
 };
 
 } // namespace FinalStorm

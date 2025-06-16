@@ -10,6 +10,21 @@
 
 namespace FinalStorm {
 
+// AudioListener (internal class)
+class AudioListener {
+public:
+    float3 position;
+    float3 velocity;
+    float3 forward;
+    float3 up;
+    
+    AudioListener() 
+        : position(simd_make_float3(0.0f, 0.0f, 0.0f))
+        , velocity(simd_make_float3(0.0f, 0.0f, 0.0f))
+        , forward(simd_make_float3(0.0f, 0.0f, -1.0f))
+        , up(simd_make_float3(0.0f, 1.0f, 0.0f)) {}
+};
+
 // AudioEngine implementation
 AudioEngine::AudioEngine()
     : m_initialized(false)
@@ -131,25 +146,10 @@ void AudioEngine::playSound3D(const std::string& clipName, const float3& positio
     source->play();
 }
 
-// AudioListener (internal class)
-class AudioListener {
-public:
-    float3 position;
-    float3 velocity;
-    float3 forward;
-    float3 up;
-    
-    AudioListener()
-        : position(0.0f)
-        , velocity(0.0f)
-        , forward(0.0f, 0.0f, -1.0f)
-        , up(0.0f, 1.0f, 0.0f) {}
-};
-
 // AudioSource implementation
 AudioSource::AudioSource()
-    : m_position(0.0f)
-    , m_velocity(0.0f)
+    : m_position(simd_make_float3(0.0f, 0.0f, 0.0f))
+    , m_velocity(simd_make_float3(0.0f, 0.0f, 0.0f))
     , m_volume(1.0f)
     , m_pitch(1.0f)
     , m_looping(false)

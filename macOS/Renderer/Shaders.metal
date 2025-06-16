@@ -7,32 +7,23 @@
 
 #include <metal_stdlib>
 #include <simd/simd.h>
+#include "MetalShaderTypes.h"
 
 using namespace metal;
 
-#include "MetalShaderTypes.h"
-
-/*
-typedef struct
-{
-    float3 position [[attribute(0)]];
-    float3 normal   [[attribute(1)]];
-    float2 texCoord [[attribute(2)]];
-} Vertex;
-*/
-
-typedef struct
-{
+struct ColorInOut {
     float4 position [[position]];
     float3 worldPosition;
     float3 worldNormal;
     float2 texCoord;
-} ColorInOut;
+};
 
-vertex ColorInOut vertexShader(Vertex in [[stage_in]],
-                               constant Uniforms & uniforms [[buffer(BufferIndexUniforms)]])
-{
+vertex ColorInOut vertexShader(uint vertexID [[vertex_id]],
+                               constant Vertex* vertices [[buffer(BufferIndexMeshPositions)]],
+                               constant Uniforms& uniforms [[buffer(BufferIndexUniforms)]]) {
     ColorInOut out;
+    
+    Vertex in = vertices[vertexID];
     
     float4 position = float4(in.position, 1.0);
     out.worldPosition = (uniforms.modelMatrix * position).xyz;
@@ -44,8 +35,7 @@ vertex ColorInOut vertexShader(Vertex in [[stage_in]],
 }
 
 fragment float4 fragmentShader(ColorInOut in [[stage_in]],
-                               constant Uniforms & uniforms [[buffer(BufferIndexUniforms)]])
-{
+                               constant Uniforms& uniforms [[buffer(BufferIndexUniforms)]]) {
     float3 normal = normalize(in.worldNormal);
     
     // Simple directional light
@@ -64,4 +54,3 @@ fragment float4 fragmentShader(ColorInOut in [[stage_in]],
     
     return float4(result, uniforms.color.a);
 }
-

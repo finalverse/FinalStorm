@@ -13,6 +13,7 @@
 #include <thread>
 #include <queue>
 #include <mutex>
+#include "../Math/Math.h"
 
 namespace FinalStorm {
 
@@ -44,7 +45,7 @@ public:
     void disconnect();
     bool isConnected() const { return m_connected; }
     
-    void sendPlayerPosition(const float3& position);
+    void sendPlayerPosition(const float3& position, const float4& rotation);  // Add rotation parameter
     void sendMessage(MessageType type, const void* data, size_t size);
     
     void setWorldManager(WorldManager* worldManager) { m_worldManager = worldManager; }
@@ -55,6 +56,7 @@ public:
 private:
     void networkThread();
     void processMessage(const Message& msg);
+    void handleEntityUpdate(const Message& msg) {} // Add this
     
     bool m_connected;
     std::string m_host;

@@ -163,15 +163,15 @@ void WorldManager::onPlayerGridChange(const GridCoordinate& oldGrid, const GridC
     // Load new grids
     for (int dx = -m_viewDistance; dx <= m_viewDistance; dx++) {
         for (int dy = -m_viewDistance; dy <= m_viewDistance; dy++) {
-            GridCoordinate loadGrid{newGrid.x + dx, newGrid.y + dy};
-            loadGrid(loadGrid);
+            GridCoordinate gridToLoad{newGrid.x + dx, newGrid.y + dy};
+            loadGrid(gridToLoad);
         }
     }
     
     // Unload distant grids
     std::vector<GridCoordinate> gridsToUnload;
     for (const auto& [coord, grid] : m_grids) {
-        int distance = std::max(abs(coord.x - newGrid.x), abs(coord.y - newGrid.y));
+        int distance = std::max(abs(coord.x - newGrid.x), std::abs(coord.y - newGrid.y));
         if (distance > m_viewDistance + 1) {
             gridsToUnload.push_back(coord);
         }
@@ -194,11 +194,11 @@ void WorldManager::generateGridContent(const GridCoordinate& coord, Grid& grid) 
     for (int i = 0; i < 3; i++) {
         auto npc = std::make_shared<NPCEntity>(baseId + i, "villager");
         
-        float3 position{
+        float3 position = simd_make_float3(
             coord.x * 256.0f + (rand() % 200) - 100.0f,
             0.0f,
             coord.y * 256.0f + (rand() % 200) - 100.0f
-        };
+        );
         npc->getTransform().position = position;
         
         addEntity(npc);

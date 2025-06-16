@@ -10,15 +10,15 @@
 
 namespace FinalStorm {
 
+// Transform implementation
 float4x4 Transform::getMatrix() const {
     float4x4 T = matrix_translation(position);
     float4x4 R = matrix_rotation(rotation);
     float4x4 S = matrix_scale(scale);
-    return T * R * S;
+    return simd_mul(simd_mul(T, R), S);
 }
 
 void Transform::setRotationFromEuler(float pitch, float yaw, float roll) {
-    // Convert Euler angles to quaternion
     float cy = cosf(yaw * 0.5f);
     float sy = sinf(yaw * 0.5f);
     float cp = cosf(pitch * 0.5f);
@@ -34,17 +34,17 @@ void Transform::setRotationFromEuler(float pitch, float yaw, float roll) {
 
 float3 Transform::getForward() const {
     float4x4 rotMatrix = matrix_rotation(rotation);
-    return -float3{rotMatrix.columns[2].x, rotMatrix.columns[2].y, rotMatrix.columns[2].z};
+    return -simd_make_float3(rotMatrix.columns[2].x, rotMatrix.columns[2].y, rotMatrix.columns[2].z);
 }
 
 float3 Transform::getRight() const {
     float4x4 rotMatrix = matrix_rotation(rotation);
-    return float3{rotMatrix.columns[0].x, rotMatrix.columns[0].y, rotMatrix.columns[0].z};
+    return simd_make_float3(rotMatrix.columns[0].x, rotMatrix.columns[0].y, rotMatrix.columns[0].z);
 }
 
 float3 Transform::getUp() const {
     float4x4 rotMatrix = matrix_rotation(rotation);
-    return float3{rotMatrix.columns[1].x, rotMatrix.columns[1].y, rotMatrix.columns[1].z};
+    return simd_make_float3(rotMatrix.columns[1].x, rotMatrix.columns[1].y, rotMatrix.columns[1].z);
 }
 
 Transform Transform::lerp(const Transform& a, const Transform& b, float t) {
@@ -74,35 +74,11 @@ Transform Transform::lerp(const Transform& a, const Transform& b, float t) {
     return result;
 }
 
-// Additional matrix functions
-float3x3 matrix3x3_upper_left(const float4x4& m) {
-    return simd_matrix(
-        simd_make_float3(m.columns[0].x, m.columns[0].y, m.columns[0].z),
-        simd_make_float3(m.columns[1].x, m.columns[1].y, m.columns[1].z),
-        simd_make_float3(m.columns[2].x, m.columns[2].y, m.columns[2].z)
-    );
-}
-
-float4x4 matrix_orthographic(float left, float right, float bottom, float top, float nearZ, float farZ) {
-    float ral = right + left;
-    float rsl = right - left;
-    float tab = top + bottom;
-    float tsb = top - bottom;
-    float fan = farZ + nearZ;
-    float fsn = farZ - nearZ;
-    
-    return simd_matrix_from_rows(
-        simd_make_float4(2.0f / rsl, 0.0f, 0.0f, -ral / rsl),
-        simd_make_float4(0.0f, 2.0f / tsb, 0.0f, -tab / tsb),
-        simd_make_float4(0.0f, 0.0f, -2.0f / fsn, -fan / fsn),
-        simd_make_float4(0.0f, 0.0f, 0.0f, 1.0f)
-    );
-}
-
-Camera::Camera()
-    : m_position(0.0f, 0.0f, 5.0f),
-      m_target(0.0f, 0.0f, 0.0f),
-      m_up(0.0f, 1.0f, 0.0f) {
+// Camera implementation
+Camera::Camera() 
+    : m_position(simd_make_float3(0.0f, 0.0f, 5.0f)),
+      m_target(simd_make_float3(0.0f, 0.0f, 0.0f)),
+      m_up(simd_make_float3(0.0f, 1.0f, 0.0f)) {
     updateViewMatrix();
     setPerspective(60.0f * M_PI / 180.0f, 16.0f/9.0f, 0.1f, 1000.0f);
 }
@@ -111,10 +87,15 @@ void Camera::setPerspective(float fov, float aspect, float nearPlane, float farP
     m_projectionMatrix = matrix_perspective_right_hand(fov, aspect, nearPlane, farPlane);
 }
 
+void Camera::setOrthographic(float left, float right, float bottom, float top, float nearPlane, float farPlane) {
+    m_projectionMatrix = matrix_orthographic(left, right, bottom, top, nearPlane, farPlane);
+}
+
 void Camera::updateViewMatrix() {
     m_viewMatrix = matrix_look_at_right_hand(m_position, m_target, m_up);
 }
 
+// Matrix functions
 float4x4 matrix_perspective_right_hand(float fovyRadians, float aspect, float nearZ, float farZ) {
     float ys = 1 / tanf(fovyRadians * 0.5);
     float xs = ys / aspect;
@@ -142,7 +123,12 @@ float4x4 matrix_look_at_right_hand(float3 eye, float3 center, float3 up) {
 }
 
 float4x4 matrix_identity() {
-    return simd_diagonal_matrix(simd_make_float4(1.0, 1.0, 1.0, 1.0));
+    return matrix_float4x4{{
+        {1.0, 0.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0, 0.0},
+        {0.0, 0.0, 1.0, 0.0},
+        {0.0, 0.0, 0.0, 1.0}
+    }};
 }
 
 float4x4 matrix_translation(float3 translation) {
@@ -172,7 +158,36 @@ float4x4 matrix_rotation(float4 quaternion) {
 }
 
 float4x4 matrix_scale(float3 scale) {
-    return simd_diagonal_matrix(simd_make_float4(scale.x, scale.y, scale.z, 1.0));
+    return matrix_float4x4{{
+        {scale.x, 0.0, 0.0, 0.0},
+        {0.0, scale.y, 0.0, 0.0},
+        {0.0, 0.0, scale.z, 0.0},
+        {0.0, 0.0, 0.0, 1.0}
+    }};
+}
+
+float3x3 matrix3x3_upper_left(const float4x4& m) {
+    return simd_matrix(
+        simd_make_float3(m.columns[0].x, m.columns[0].y, m.columns[0].z),
+        simd_make_float3(m.columns[1].x, m.columns[1].y, m.columns[1].z),
+        simd_make_float3(m.columns[2].x, m.columns[2].y, m.columns[2].z)
+    );
+}
+
+float4x4 matrix_orthographic(float left, float right, float bottom, float top, float nearZ, float farZ) {
+    float ral = right + left;
+    float rsl = right - left;
+    float tab = top + bottom;
+    float tsb = top - bottom;
+    float fan = farZ + nearZ;
+    float fsn = farZ - nearZ;
+    
+    return simd_matrix_from_rows(
+        simd_make_float4(2.0f / rsl, 0.0f, 0.0f, -ral / rsl),
+        simd_make_float4(0.0f, 2.0f / tsb, 0.0f, -tab / tsb),
+        simd_make_float4(0.0f, 0.0f, -2.0f / fsn, -fan / fsn),
+        simd_make_float4(0.0f, 0.0f, 0.0f, 1.0f)
+    );
 }
 
 } // namespace FinalStorm

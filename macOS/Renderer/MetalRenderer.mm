@@ -9,6 +9,7 @@
 #import "MetalShaderTypes.h"
 #include "../../Shared/Core/World/Entity.h"
 #include <vector>
+#include <unordered_set>
 
 using namespace FinalStorm;
 
@@ -247,6 +248,7 @@ using namespace FinalStorm;
     _worldManager->update(deltaTime);
 }
 
+// In the drawInMTKView method, fix the uniforms update:
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
     @autoreleasepool {
@@ -257,69 +259,69 @@ using namespace FinalStorm;
         if(renderPassDescriptor != nil)
         {
             id<MTLRenderCommandEncoder> renderEncoder =
-               [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-           renderEncoder.label = @"MyRenderEncoder";
-           
-           [renderEncoder setCullMode:MTLCullModeBack];
-           [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-           [renderEncoder setRenderPipelineState:_pipelineState];
-           [renderEncoder setDepthStencilState:_depthState];
-           
-           // Update uniforms
-           Uniforms *uniforms = (Uniforms*)_uniformBuffer.contents;
-           uniforms->viewProjectionMatrix = _camera->getViewProjectionMatrix();
-           
-           // Render ground plane
-           uniforms->modelMatrix = matrix_identity();
-           uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
-           uniforms->color = simd_make_float4(0.3f, 0.3f, 0.3f, 1.0f);
-           
-           [renderEncoder setVertexBuffer:_planeVertexBuffer
-                                   offset:0
-                                  atIndex:BufferIndexMeshPositions];
-           
-           [renderEncoder setVertexBuffer:_uniformBuffer
-                                   offset:0
-                                  atIndex:BufferIndexUniforms];
-           
-           [renderEncoder setFragmentBuffer:_uniformBuffer
-                                     offset:0
-                                    atIndex:BufferIndexUniforms];
-           
-           [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                     indexCount:_planeIndexCount
-                                      indexType:MTLIndexTypeUInt16
-                                    indexBuffer:_planeIndexBuffer
-                              indexBufferOffset:0];
-           
-           // Render entities
-           auto visibleEntities = _worldManager->getVisibleEntities(*_camera);
-           for (const auto& entity : visibleEntities)
-           {
-               if (entity->getMeshName() == "cube")
-               {
-                   uniforms->modelMatrix = entity->getTransform().getMatrix();
-                   uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
-                   uniforms->color = simd_make_float4(0.8f, 0.2f, 0.2f, 1.0f);
-                   
-                   [renderEncoder setVertexBuffer:_cubeVertexBuffer
-                                           offset:0
-                                          atIndex:BufferIndexMeshPositions];
-                   
-                   [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                             indexCount:_cubeIndexCount
-                                              indexType:MTLIndexTypeUInt16
-                                            indexBuffer:_cubeIndexBuffer
-                                      indexBufferOffset:0];
-               }
-           }
-           
-           [renderEncoder endEncoding];
-           [commandBuffer presentDrawable:view.currentDrawable];
-       }
-       
-       [commandBuffer commit];
-   }
+                [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+            renderEncoder.label = @"MyRenderEncoder";
+            
+            [renderEncoder setCullMode:MTLCullModeBack];
+            [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+            [renderEncoder setRenderPipelineState:_pipelineState];
+            [renderEncoder setDepthStencilState:_depthState];
+            
+            // Update uniforms
+            Uniforms *uniforms = (Uniforms*)_uniformBuffer.contents;
+            uniforms->viewProjectionMatrix = _camera->getViewProjectionMatrix();
+            
+            // Render ground plane
+            uniforms->modelMatrix = matrix_identity();
+            uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
+            uniforms->color = simd_make_float4(0.3f, 0.3f, 0.3f, 1.0f);
+            
+            [renderEncoder setVertexBuffer:_planeVertexBuffer
+                                    offset:0
+                                   atIndex:BufferIndexMeshPositions];
+            
+            [renderEncoder setVertexBuffer:_uniformBuffer
+                                    offset:0
+                                   atIndex:BufferIndexUniforms];
+            
+            [renderEncoder setFragmentBuffer:_uniformBuffer
+                                      offset:0
+                                     atIndex:BufferIndexUniforms];
+            
+            [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                      indexCount:_planeIndexCount
+                                       indexType:MTLIndexTypeUInt16
+                                     indexBuffer:_planeIndexBuffer
+                               indexBufferOffset:0];
+            
+            // Render entities
+            auto visibleEntities = _worldManager->getVisibleEntities(*_camera);
+            for (const auto& entity : visibleEntities)
+            {
+                if (entity->getMeshName() == "cube")
+                {
+                    uniforms->modelMatrix = entity->getTransform().getMatrix();
+                    uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
+                    uniforms->color = simd_make_float4(0.8f, 0.2f, 0.2f, 1.0f);
+                    
+                    [renderEncoder setVertexBuffer:_cubeVertexBuffer
+                                            offset:0
+                                           atIndex:BufferIndexMeshPositions];
+                    
+                    [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                              indexCount:_cubeIndexCount
+                                               indexType:MTLIndexTypeUInt16
+                                             indexBuffer:_cubeIndexBuffer
+                                       indexBufferOffset:0];
+                }
+            }
+            
+            [renderEncoder endEncoding];
+            [commandBuffer presentDrawable:view.currentDrawable];
+        }
+        
+        [commandBuffer commit];
+    }
 }
 
 - (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size

@@ -11,16 +11,15 @@
 
 namespace FinalStorm {
 
-class Transform {
-public:
+struct Transform {
     float3 position;
     float4 rotation; // Quaternion (x, y, z, w)
     float3 scale;
     
-    Transform()
-        : position(0.0f, 0.0f, 0.0f),
-          rotation(0.0f, 0.0f, 0.0f, 1.0f),
-          scale(1.0f, 1.0f, 1.0f) {}
+    Transform() 
+        : position(make_float3(0.0f)), 
+          rotation(make_float4(0.0f, 0.0f, 0.0f, 1.0f)), 
+          scale(make_float3(1.0f)) {}
     
     Transform(const float3& pos, const float4& rot, const float3& scl)
         : position(pos), rotation(rot), scale(scl) {}
