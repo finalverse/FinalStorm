@@ -80,7 +80,11 @@ using namespace FinalStorm;
             NSLog(@"Failed to load Metal library at %@, error %@", libPath, libraryError);
         }
     } else {
-        NSLog(@"default.metallib not found in bundle");
+        NSLog(@"default.metallib not found in bundle, attempting newDefaultLibrary");
+        defaultLibrary = [_device newDefaultLibrary];
+        if (!defaultLibrary) {
+            NSLog(@"Failed to load default Metal library");
+        }
     }
 
     id<MTLFunction> vertexFunction = [defaultLibrary newFunctionWithName:@"vertexShader"];
