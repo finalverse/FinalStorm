@@ -104,28 +104,16 @@ set_target_properties(FinalStorm-iOS PROPERTIES
 
 target_include_directories(FinalStorm-iOS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Link iOS frameworks (conditionally)
-if(UIKIT_FRAMEWORK)
-    target_link_libraries(FinalStorm-iOS
-        ${METAL_FRAMEWORK}
-        ${METALKIT_FRAMEWORK}
-        ${QUARTZCORE_FRAMEWORK}
-        ${COREFOUNDATION_FRAMEWORK}
-        ${FOUNDATION_FRAMEWORK}
-        ${COREGRAPHICS_FRAMEWORK}
-        ${UIKIT_FRAMEWORK}
-    )
-else()
-    # Fallback for when UIKit isn't found on macOS
-    target_link_libraries(FinalStorm-iOS
-        ${METAL_FRAMEWORK}
-        ${METALKIT_FRAMEWORK}
-        ${QUARTZCORE_FRAMEWORK}
-        ${COREFOUNDATION_FRAMEWORK}
-        ${FOUNDATION_FRAMEWORK}
-        ${COREGRAPHICS_FRAMEWORK}
-    )
-endif()
+# Link iOS frameworks explicitly
+target_link_libraries(FinalStorm-iOS
+    "-framework" Metal
+    "-framework" MetalKit
+    "-framework" QuartzCore
+    "-framework" CoreFoundation
+    "-framework" Foundation
+    "-framework" CoreGraphics
+    "-framework" UIKit
+)
 
 # Shader compilation for iOS
 add_custom_command(
