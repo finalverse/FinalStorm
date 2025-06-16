@@ -7,3 +7,4 @@ cmake -G Xcode ..
 cd ..
 
 echo "Xcode project generated in build/FinalStorm.xcodeproj"
+
