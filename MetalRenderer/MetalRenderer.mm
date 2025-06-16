@@ -36,7 +36,7 @@ using namespace FinalStorm;
     std::shared_ptr<Camera> _camera;
     
     // Input state
-    NSPoint _lastMousePosition;
+    FSPoint _lastMousePosition;
     bool _mouseDown;
     std::unordered_set<uint16_t> _keysPressed;
 }
@@ -332,13 +332,13 @@ using namespace FinalStorm;
 
 #pragma mark - Input Handling
 
-- (void)handleMouseDown:(NSPoint)point
+- (void)handleMouseDown:(FSPoint)point
 {
    _mouseDown = true;
    _lastMousePosition = point;
 }
 
-- (void)handleMouseDragged:(NSPoint)point
+- (void)handleMouseDragged:(FSPoint)point
 {
    if (_mouseDown)
    {
@@ -367,7 +367,7 @@ using namespace FinalStorm;
    }
 }
 
-- (void)handleMouseUp:(NSPoint)point
+- (void)handleMouseUp:(FSPoint)point
 {
    _mouseDown = false;
 }

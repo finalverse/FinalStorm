@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Setting up FinalStorm Xcode project..."
+# Setting up FinalStorm Xcode project
 
 # Clean previous builds
 rm -rf build
@@ -8,7 +8,6 @@ mkdir build
 cd build
 
 # Generate Xcode project with both macOS and iOS targets
-echo "Generating Xcode project..."
 cmake -G Xcode \
     -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
     ..
@@ -26,3 +25,5 @@ else
     echo "❌ Failed to generate Xcode project"
     exit 1
 fi
+cd ..
+

@@ -96,7 +96,7 @@
 {
     CGPoint translation = [gesture translationInView:self.view];
     // Convert to Metal coordinates and pass to renderer
-    [_renderer handleMouseDragged:NSMakePoint(translation.x, translation.y)];
+    [_renderer handleMouseDragged:CGPointMake(translation.x, translation.y)];
     [gesture setTranslation:CGPointZero inView:self.view];
 }
 
