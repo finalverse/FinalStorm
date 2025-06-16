@@ -76,7 +76,9 @@
         
         auto camera = _renderer.camera;
         if (camera) {
-            _client->sendPlayerPosition(camera->getPosition());
+            // For now, send identity quaternion for rotation
+            FinalStorm::float4 rotation = simd_make_float4(0.0f, 0.0f, 0.0f, 1.0f);
+            _client->sendPlayerPosition(camera->getPosition(), rotation);
         }
     }
 }
