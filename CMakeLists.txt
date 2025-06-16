@@ -55,21 +55,21 @@ if(BUILD_IOS)
         iOS/main.m
         iOS/AppDelegate.m
         iOS/GameViewController.mm
-        macOS/Renderer/MetalRenderer.mm
+        MetalRenderer/MetalRenderer.mm
     )
     set(INFO_PLIST_PATH ${CMAKE_CURRENT_SOURCE_DIR}/iOS/Info.plist)
 else()
     set(PLATFORM_SOURCES
         macOS/main.m
         macOS/GameViewController.mm
-        macOS/Renderer/MetalRenderer.mm
+        MetalRenderer/MetalRenderer.mm
     )
     set(INFO_PLIST_PATH ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Info.plist)
 endif()
 
 # Metal shaders
 set(METAL_SHADERS
-    macOS/Renderer/Shaders.metal
+    MetalRenderer/Shaders.metal
 )
 
 # Create executable - THIS MUST COME BEFORE target_link_libraries
@@ -117,7 +117,7 @@ endif()
 
 add_custom_command(
     TARGET FinalStorm POST_BUILD
-    COMMAND xcrun -sdk ${METAL_SDK} metal -c ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Renderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
+    COMMAND xcrun -sdk ${METAL_SDK} metal -c ${CMAKE_CURRENT_SOURCE_DIR}/MetalRenderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
     COMMAND xcrun -sdk ${METAL_SDK} metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air -o ${CMAKE_CURRENT_BINARY_DIR}/default.metallib
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources/
     COMMENT "Compiling Metal shaders"
