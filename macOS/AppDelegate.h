@@ -1,6 +1,6 @@
 //
 //  AppDelegate.h
-//  FinalStorm
+//  FinalStorm macOS
 //
 //  Created by Wenyan Qin on 2025-06-15.
 //
@@ -9,6 +9,6 @@
 
 @interface AppDelegate : NSObject <NSApplicationDelegate>
 
-@property (assign) IBOutlet NSWindow *window;
 
 @end
+

@@ -1,6 +1,6 @@
 //
 //  main.m
-//  FinalStorm
+//  FinalStorm macOS
 //
 //  Created by Wenyan Qin on 2025-06-15.
 //
