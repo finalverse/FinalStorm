@@ -40,6 +40,7 @@ add_executable(FinalStorm MACOSX_BUNDLE
     ${SHARED_SOURCES}
     ${METAL_RENDERER_SOURCES}
     macOS/main.m
+    macOS/AppDelegate.m
     macOS/GameViewController.mm
     ${METAL_SHADERS}
 )
@@ -106,13 +107,13 @@ target_include_directories(FinalStorm-iOS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link iOS frameworks explicitly
 target_link_libraries(FinalStorm-iOS
-    "-framework" Metal
-    "-framework" MetalKit
-    "-framework" QuartzCore
-    "-framework" CoreFoundation
-    "-framework" Foundation
-    "-framework" CoreGraphics
-    "-framework" UIKit
+    "-framework Metal"
+    "-framework MetalKit"
+    "-framework QuartzCore"
+    "-framework CoreFoundation"
+    "-framework Foundation"
+    "-framework CoreGraphics"
+    "-framework UIKit"
 )
 
 # Shader compilation for iOS
