@@ -14,6 +14,7 @@ find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
 find_library(COCOA_FRAMEWORK Cocoa)
 find_library(APPKIT_FRAMEWORK AppKit)
 find_library(UIKIT_FRAMEWORK UIKit)
+find_library(COREGRAPHICS_FRAMEWORK CoreGraphics)
 
 # Source files
 set(SHARED_SOURCES
@@ -111,6 +112,7 @@ if(UIKIT_FRAMEWORK)
         ${QUARTZCORE_FRAMEWORK}
         ${COREFOUNDATION_FRAMEWORK}
         ${FOUNDATION_FRAMEWORK}
+        ${COREGRAPHICS_FRAMEWORK}
         ${UIKIT_FRAMEWORK}
     )
 else()
@@ -121,6 +123,7 @@ else()
         ${QUARTZCORE_FRAMEWORK}
         ${COREFOUNDATION_FRAMEWORK}
         ${FOUNDATION_FRAMEWORK}
+        ${COREGRAPHICS_FRAMEWORK}
     )
 endif()
 
