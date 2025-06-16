@@ -16,8 +16,13 @@
     
     CVDisplayLinkRef _displayLink;
     dispatch_source_t _displaySource;
-    
+
     NSTimeInterval _lastTime;
+}
+
+- (void)loadView
+{
+    self.view = [[MTKView alloc] initWithFrame:NSMakeRect(0, 0, 800, 600) device:nil];
 }
 
 - (void)viewDidLoad
