@@ -39,8 +39,8 @@ set(METAL_SHADERS
 add_executable(FinalStorm MACOSX_BUNDLE
     ${SHARED_SOURCES}
     ${METAL_RENDERER_SOURCES}
-    macOS/main.m
-    macOS/AppDelegate.m
+    macOS/main.mm
+    macOS/AppDelegate.mm
     macOS/GameViewController.mm
     ${METAL_SHADERS}
 )
@@ -81,8 +81,8 @@ add_custom_command(
 add_executable(FinalStorm-iOS MACOSX_BUNDLE
     ${SHARED_SOURCES}
     ${METAL_RENDERER_SOURCES}
-    iOS/main.m
-    iOS/AppDelegate.m
+    iOS/main.mm
+    iOS/AppDelegate.mm
     iOS/GameViewController.mm
     ${METAL_SHADERS}
 )
