@@ -109,10 +109,16 @@ target_link_libraries(FinalStorm
 )
 
 # Compile Metal shaders
+if(BUILD_IOS)
+    set(METAL_SDK iphonesimulator)
+else()
+    set(METAL_SDK macosx)
+endif()
+
 add_custom_command(
     TARGET FinalStorm POST_BUILD
-    COMMAND xcrun -sdk macosx metal -c ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Renderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
-    COMMAND xcrun -sdk macosx metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air -o ${CMAKE_CURRENT_BINARY_DIR}/default.metallib
+    COMMAND xcrun -sdk ${METAL_SDK} metal -c ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Renderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
+    COMMAND xcrun -sdk ${METAL_SDK} metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air -o ${CMAKE_CURRENT_BINARY_DIR}/default.metallib
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources/
     COMMENT "Compiling Metal shaders"
 )
