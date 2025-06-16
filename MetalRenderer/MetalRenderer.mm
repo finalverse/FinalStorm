@@ -71,9 +71,23 @@ using namespace FinalStorm;
     _commandQueue = [_device newCommandQueue];
     
     // Load shaders
-    id<MTLLibrary> defaultLibrary = [_device newDefaultLibrary];
+    NSString *libPath = [[NSBundle mainBundle] pathForResource:@"default" ofType:@"metallib"];
+    NSError *libraryError = nil;
+    id<MTLLibrary> defaultLibrary = nil;
+    if (libPath) {
+        defaultLibrary = [_device newLibraryWithFile:libPath error:&libraryError];
+        if (!defaultLibrary) {
+            NSLog(@"Failed to load Metal library at %@, error %@", libPath, libraryError);
+        }
+    } else {
+        NSLog(@"default.metallib not found in bundle");
+    }
+
     id<MTLFunction> vertexFunction = [defaultLibrary newFunctionWithName:@"vertexShader"];
     id<MTLFunction> fragmentFunction = [defaultLibrary newFunctionWithName:@"fragmentShader"];
+    if (!vertexFunction || !fragmentFunction) {
+        NSLog(@"Failed to find shader functions in Metal library");
+    }
     
     // Configure pipeline
     MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
