@@ -17,6 +17,11 @@
     NSTimeInterval _lastTime;
 }
 
+- (void)loadView
+{
+    self.view = [[MTKView alloc] initWithFrame:[UIScreen mainScreen].bounds device:nil];
+}
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
