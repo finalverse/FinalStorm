@@ -7,13 +7,15 @@
 
 #import "GameViewController.h"
 #include "../Shared/Core/Networking/FinalverseClient.h"
+#include "../Shared/Core/Input/InteractionManager.h"
 
 @implementation GameViewController
 {
     MTKView *_view;
     MetalRenderer *_renderer;
     std::unique_ptr<FinalStorm::FinalverseClient> _client;
-    
+    std::shared_ptr<FinalStorm::InteractionManager> _interactionManager;
+
     CVDisplayLinkRef _displayLink;
     dispatch_source_t _displaySource;
 
@@ -42,6 +44,10 @@
 
     _renderer = [[MetalRenderer alloc] initWithMetalKitView:_view];
     [_renderer mtkView:_view drawableSizeWillChange:_view.bounds.size];
+
+    _interactionManager = std::make_shared<FinalStorm::InteractionManager>();
+    _interactionManager->setCamera(_renderer.camera);
+    _interactionManager->setSceneRoot(_renderer.sceneRoot);
     
     _view.delegate = _renderer;
     
@@ -118,18 +124,33 @@ static CVReturn displayLinkCallback(CVDisplayLinkRef displayLink,
 {
     NSPoint locationInView = [_view convertPoint:[event locationInWindow] fromView:nil];
     [_renderer handleMouseDown:locationInView];
+    if (_interactionManager) {
+        FinalStorm::float2 viewport = simd_make_float2(_view.bounds.size.width, _view.bounds.size.height);
+        FinalStorm::float2 pos = simd_make_float2(locationInView.x, locationInView.y);
+        _interactionManager->handleTouchBegan(pos, viewport);
+    }
 }
 
 - (void)mouseDragged:(NSEvent *)event
 {
     NSPoint locationInView = [_view convertPoint:[event locationInWindow] fromView:nil];
     [_renderer handleMouseDragged:locationInView];
+    if (_interactionManager) {
+        FinalStorm::float2 viewport = simd_make_float2(_view.bounds.size.width, _view.bounds.size.height);
+        FinalStorm::float2 pos = simd_make_float2(locationInView.x, locationInView.y);
+        _interactionManager->handleTouchMoved(pos, viewport);
+    }
 }
 
 - (void)mouseUp:(NSEvent *)event
 {
     NSPoint locationInView = [_view convertPoint:[event locationInWindow] fromView:nil];
     [_renderer handleMouseUp:locationInView];
+    if (_interactionManager) {
+        FinalStorm::float2 viewport = simd_make_float2(_view.bounds.size.width, _view.bounds.size.height);
+        FinalStorm::float2 pos = simd_make_float2(locationInView.x, locationInView.y);
+        _interactionManager->handleTouchEnded(pos, viewport);
+    }
 }
 
 - (void)keyDown:(NSEvent *)event
