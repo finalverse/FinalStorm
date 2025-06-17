@@ -206,6 +206,7 @@ using namespace FinalStorm;
                                                                                              height:1024
                                                                                           mipmapped:NO];
     shadowDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    shadowDesc.storageMode = MTLStorageModePrivate;
     _shadowMap = [_device newTextureWithDescriptor:shadowDesc];
 
     // Post-process texture
@@ -214,11 +215,13 @@ using namespace FinalStorm;
                                                                                           height:view.drawableSize.height
                                                                                        mipmapped:NO];
     ppDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    ppDesc.storageMode = MTLStorageModePrivate;
     _postProcessTexture = [_device newTextureWithDescriptor:ppDesc];
 
     // Environment cube map placeholder
     MTLTextureDescriptor *envDesc = [MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:view.colorPixelFormat size:512 mipmapped:NO];
     envDesc.usage = MTLTextureUsageShaderRead;
+    envDesc.storageMode = MTLStorageModePrivate;
     _environmentCubemap = [_device newTextureWithDescriptor:envDesc];
 
     _shadowPipelineState = _pipelineState;
