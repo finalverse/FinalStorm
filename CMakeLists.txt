@@ -24,6 +24,7 @@ set(SHARED_SOURCES
     Shared/Core/Networking/FinalverseClient.cpp
     Shared/Core/Networking/MessageProtocol.cpp
     Shared/Core/Audio/AudioEngine.cpp
+    Shared/Core/Audio/SpatialAudioSystem.cpp
     Shared/Core/Input/InteractionManager.cpp
     Shared/SceneGraph/SceneNode.cpp
     Shared/SceneGraph/ServiceNode.cpp
