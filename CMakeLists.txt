@@ -18,35 +18,35 @@ find_library(COREGRAPHICS_FRAMEWORK CoreGraphics)
 
 # Source files
 set(SHARED_SOURCES
-    Shared/Core/Math/Math.cpp
-    Shared/Core/World/Entity.cpp
-    Shared/Core/World/WorldManager.cpp
-    Shared/Core/Networking/FinalverseClient.cpp
-    Shared/Core/Networking/MessageProtocol.cpp
-    Shared/Core/Audio/AudioEngine.cpp
-    Shared/Core/Audio/SpatialAudioSystem.cpp
-    Shared/Core/Input/InteractionManager.cpp
-    Shared/SceneGraph/SceneNode.cpp
-    Shared/SceneGraph/ServiceNode.cpp
-    Shared/SceneGraph/ServiceVisualizations.cpp
-    Shared/Core/Services/WebServerViz.cpp
-    Shared/Core/Services/DatabaseViz.cpp
-    Shared/Core/Services/ServiceEntity.cpp
-    Shared/Core/Environment/EnvironmentController.cpp
-    Shared/Core/Visualization/DataVisualizer.cpp
-    Shared/Core/World/SceneManager.cpp
-    Shared/UI3D/Panel.cpp
-    Shared/UI3D/HolographicDisplay.cpp
-    Shared/UI3D/InteractiveOrb.cpp
+    src/Core/Math/Math.cpp
+    src/Core/World/Entity.cpp
+    src/Core/World/WorldManager.cpp
+    src/Core/Networking/FinalverseClient.cpp
+    src/Core/Networking/MessageProtocol.cpp
+    src/Core/Audio/AudioEngine.cpp
+    src/Core/Audio/SpatialAudioSystem.cpp
+    src/Core/Input/InteractionManager.cpp
+    src/Scene/SceneNode.cpp
+    src/Scene/ServiceNode.cpp
+    src/Scene/ServiceVisualizations.cpp
+    src/Core/Services/WebServerViz.cpp
+    src/Core/Services/DatabaseViz.cpp
+    src/Core/Services/ServiceEntity.cpp
+    src/Core/Environment/EnvironmentController.cpp
+    src/Core/Visualization/DataVisualizer.cpp
+    src/Core/World/SceneManager.cpp
+    src/UI/Panel.cpp
+    src/UI/HolographicDisplay.cpp
+    src/UI/InteractiveOrb.cpp
 )
 
 set(METAL_RENDERER_SOURCES
-    MetalRenderer/MetalRenderer.mm
+    src/Rendering/Metal/MetalRenderer.mm
 )
 
 # Metal shaders
 set(METAL_SHADERS
-    MetalRenderer/Shaders.metal
+    src/Rendering/Metal/Shaders.metal
 )
 
 # Set the shader files as resources
@@ -58,15 +58,15 @@ set_source_files_properties(${METAL_SHADERS} PROPERTIES
 add_executable(FinalStorm MACOSX_BUNDLE
     ${SHARED_SOURCES}
     ${METAL_RENDERER_SOURCES}
-    macOS/main.mm
-    macOS/AppDelegate.mm
-    macOS/GameViewController.mm
+    src/Platform/macOS/main.mm
+    src/Platform/macOS/AppDelegate.mm
+    src/Platform/macOS/GameViewController.mm
     ${METAL_SHADERS}
 )
 
 set_target_properties(FinalStorm PROPERTIES
     MACOSX_BUNDLE TRUE
-    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/macOS/Info.plist
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS/Info.plist
     MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm"
     MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.finalverse.finalstorm"
@@ -74,7 +74,7 @@ set_target_properties(FinalStorm PROPERTIES
     XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++"
 )
 
-target_include_directories(FinalStorm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(FinalStorm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 target_link_libraries(FinalStorm
     ${METAL_FRAMEWORK}
@@ -90,7 +90,7 @@ target_link_libraries(FinalStorm
 add_custom_command(
     TARGET FinalStorm POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources
-    COMMAND xcrun -sdk macosx metal -c ${CMAKE_CURRENT_SOURCE_DIR}/MetalRenderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
+    COMMAND xcrun -sdk macosx metal -c ${CMAKE_CURRENT_SOURCE_DIR}/src/Rendering/Metal/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
     COMMAND xcrun -sdk macosx metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air -o ${CMAKE_CURRENT_BINARY_DIR}/default.metallib
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources/
     COMMENT "Compiling Metal shaders for macOS"
@@ -100,9 +100,9 @@ add_custom_command(
 add_executable(FinalStorm-iOS MACOSX_BUNDLE
     ${SHARED_SOURCES}
     ${METAL_RENDERER_SOURCES}
-    iOS/main.mm
-    iOS/AppDelegate.mm
-    iOS/GameViewController.mm
+    src/Platform/iOS/main.mm
+    src/Platform/iOS/AppDelegate.mm
+    src/Platform/iOS/GameViewController.mm
     ${METAL_SHADERS}
 )
 
@@ -111,8 +111,8 @@ if(TARGET FinalStorm-iOS)
     # Copy shader source as a fallback
     add_custom_command(
         TARGET FinalStorm-iOS POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy 
-            ${CMAKE_CURRENT_SOURCE_DIR}/MetalRenderer/Shaders.metal 
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/Rendering/Metal/Shaders.metal
             $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources/Shaders.metal
         COMMENT "Copying shader source for iOS"
     )
@@ -120,7 +120,7 @@ endif()
 
 set_target_properties(FinalStorm-iOS PROPERTIES
     MACOSX_BUNDLE TRUE
-    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/iOS/Info.plist
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/Info.plist
     MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm"
     MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm"
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.finalverse.finalstorm"
@@ -134,7 +134,7 @@ set_target_properties(FinalStorm-iOS PROPERTIES
     XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS "$(inherited)"
 )
 
-target_include_directories(FinalStorm-iOS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(FinalStorm-iOS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Link iOS frameworks explicitly
 target_link_libraries(FinalStorm-iOS
@@ -151,7 +151,7 @@ target_link_libraries(FinalStorm-iOS
 add_custom_command(
     TARGET FinalStorm-iOS POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources
-    COMMAND xcrun -sdk iphoneos metal -c ${CMAKE_CURRENT_SOURCE_DIR}/MetalRenderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air
+    COMMAND xcrun -sdk iphoneos metal -c ${CMAKE_CURRENT_SOURCE_DIR}/src/Rendering/Metal/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air
     COMMAND xcrun -sdk iphoneos metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air -o ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources/default.metallib
     COMMENT "Compiling Metal shaders for iOS"

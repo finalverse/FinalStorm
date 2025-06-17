@@ -1,7 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <ARKit/ARKit.h>
-#import "../MetalRenderer/MetalRenderer.h"
-#include "../Shared/Core/Services/ServiceRepresentation.h"
+#import "../../Rendering/Metal/MetalRenderer.h"
+#include "../../Core/Services/ServiceRepresentation.h"
 #include <memory>
 
 @class MetalRenderer;

@@ -7,13 +7,13 @@
 
 #import "MetalRenderer.h"
 #import "MetalShaderTypes.h"
-#include "../Shared/Core/World/Entity.h"
-#include "../Shared/SceneGraph/SceneNode.h"
-#include "../Shared/Core/Services/WebServerViz.h"
-#include "../Shared/Core/Services/DatabaseViz.h"
-#include "../Shared/Core/Environment/EnvironmentController.h"
-#include "../Shared/Core/Visualization/DataVisualizer.h"
-#include "../Shared/Core/Audio/SpatialAudioSystem.h"
+#include "../../Core/World/Entity.h"
+#include "../../Scene/SceneNode.h"
+#include "../../Core/Services/WebServerViz.h"
+#include "../../Core/Services/DatabaseViz.h"
+#include "../../Core/Environment/EnvironmentController.h"
+#include "../../Core/Visualization/DataVisualizer.h"
+#include "../../Core/Audio/SpatialAudioSystem.h"
 #include <vector>
 #include <unordered_set>
 
@@ -136,9 +136,9 @@ using namespace FinalStorm;
         if (!shaderPath) {
             // Try alternative paths
             NSArray *possiblePaths = @[
-                @"MetalRenderer/Shaders.metal",
+                @"Rendering/Metal/Shaders.metal",
                 @"Shaders.metal",
-                @"../MetalRenderer/Shaders.metal"
+                @"../Rendering/Metal/Shaders.metal"
             ];
             
             for (NSString *path in possiblePaths) {
