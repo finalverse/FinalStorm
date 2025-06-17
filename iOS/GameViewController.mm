@@ -8,6 +8,7 @@
 #import "GameViewController.h"
 #include "../Shared/Core/Networking/FinalverseClient.h"
 #include "../Shared/Core/Input/InteractionManager.h"
+#import "ARMode.h"
 
 @implementation GameViewController
 {
@@ -15,6 +16,9 @@
     MetalRenderer *_renderer;
     std::unique_ptr<FinalStorm::FinalverseClient> _client;
     std::shared_ptr<FinalStorm::InteractionManager> _interactionManager;
+    ARMode *_arMode;
+    UIButton *_arToggleButton;
+    BOOL _arEnabled;
     CADisplayLink *_displayLink;
     NSTimeInterval _lastTime;
 }
@@ -44,8 +48,21 @@
     _interactionManager = std::make_shared<FinalStorm::InteractionManager>();
     _interactionManager->setCamera(_renderer.camera);
     _interactionManager->setSceneRoot(_renderer.sceneRoot);
-    
+
     _view.delegate = _renderer;
+
+    // AR mode setup when supported
+    _arEnabled = NO;
+    if (@available(iOS 13.0, *)) {
+        if ([ARWorldTrackingConfiguration isSupported]) {
+            _arMode = [[ARMode alloc] initWithRenderer:_renderer];
+            _arToggleButton = [UIButton buttonWithType:UIButtonTypeSystem];
+            _arToggleButton.frame = CGRectMake(20, 40, 80, 30);
+            [_arToggleButton setTitle:@"AR:Off" forState:UIControlStateNormal];
+            [_arToggleButton addTarget:self action:@selector(toggleAR) forControlEvents:UIControlEventTouchUpInside];
+            [self.view addSubview:_arToggleButton];
+        }
+    }
     
     // Setup client
     _client = std::make_unique<FinalStorm::FinalverseClient>();
@@ -149,6 +166,20 @@
         float scale = gesture.scale;
         (void)scale;
         gesture.scale = 1.0;
+    }
+}
+
+- (void)toggleAR
+{
+    if (!_arMode) return;
+    _arEnabled = !_arEnabled;
+    if (_arEnabled) {
+        [_arMode startSession];
+        [_arToggleButton setTitle:@"AR:On" forState:UIControlStateNormal];
+        [_arMode placeServicesInRealWorld];
+    } else {
+        [_arMode pauseSession];
+        [_arToggleButton setTitle:@"AR:Off" forState:UIControlStateNormal];
     }
 }
 
