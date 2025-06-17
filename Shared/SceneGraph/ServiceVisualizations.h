@@ -2,6 +2,7 @@
 #pragma once
 
 #include "SceneNode.h"
+#include "../Core/Math/Math.h"
 #include <random>
 
 namespace FinalStorm {
@@ -27,9 +28,9 @@ protected:
     void createInfoDisplay() {
         // Create holographic info panel
         auto infoPanel = std::make_shared<UI3DPanel>(2.0f, 1.0f);
-        infoPanel->setPosition(glm::vec3(0, 2.5f, 0));
+        infoPanel->setPosition(make_float3(0, 2.5f, 0));
         infoPanel->setText(getServiceInfo().name);
-        infoPanel->setBackgroundColor(glm::vec4(0.05f, 0.05f, 0.1f, 0.7f));
+        infoPanel->setBackgroundColor(make_float4(0.05f, 0.05f, 0.1f, 0.7f));
         addChild(infoPanel);
         
         this->infoPanel = infoPanel;
@@ -59,8 +60,8 @@ protected:
     }
 
 protected:
-    glm::vec3 baseColor;
-    glm::vec3 glowColor;
+    float3 baseColor;
+    float3 glowColor;
     std::shared_ptr<ParticleSystemNode> activityParticles;
     std::shared_ptr<UI3DPanel> infoPanel;
     
@@ -76,8 +77,8 @@ public:
     WebServerVisualization(const ServiceInfo& info) : 
         ServiceVisualization(info),
         rotationSpeed(0.5f) {
-        baseColor = glm::vec3(0.0f, 0.7f, 1.0f);
-        glowColor = glm::vec3(0.0f, 1.0f, 1.0f);
+        baseColor = make_float3(0.0f, 0.7f, 1.0f);
+        glowColor = make_float3(0.0f, 1.0f, 1.0f);
     }
 
 protected:
@@ -85,14 +86,14 @@ protected:
         // Central crystal core
         auto core = std::make_shared<MeshNode>();
         core->setMesh(MeshLibrary::OCTAHEDRON);
-        core->setScale(glm::vec3(1.0f));
+        core->setScale(make_float3(1.0f));
         addChild(core);
         this->core = core;
         
         // Outer crystal shell
         auto shell = std::make_shared<MeshNode>();
         shell->setMesh(MeshLibrary::ICOSAHEDRON);
-        shell->setScale(glm::vec3(1.5f));
+        shell->setScale(make_float3(1.5f));
         shell->setMaterial(MaterialLibrary::GLASS);
         addChild(shell);
         this->shell = shell;
@@ -101,11 +102,11 @@ protected:
         for (int i = 0; i < 6; ++i) {
             auto connector = std::make_shared<MeshNode>();
             connector->setMesh(MeshLibrary::SPHERE);
-            connector->setScale(glm::vec3(0.2f));
+            connector->setScale(make_float3(0.2f));
             
             float angle = (i / 6.0f) * 2.0f * M_PI;
             float radius = 2.0f;
-            connector->setPosition(glm::vec3(
+            connector->setPosition(make_float3(
                 cos(angle) * radius,
                 sin(angle * 2.0f) * 0.5f,
                 sin(angle) * radius
@@ -119,17 +120,17 @@ protected:
     void createActivityIndicators() override {
         // Data flow particles
         ParticleSystemNode::ParticleParams params;
-        params.emitPosition = glm::vec3(0, 0, 0);
-        params.emitDirection = glm::vec3(0, 1, 0);
+        params.emitPosition = make_float3(0, 0, 0);
+        params.emitDirection = make_float3(0, 1, 0);
         params.emitAngle = 360.0f;
         params.emitRate = 10.0f;
         params.particleLife = 2.0f;
         params.startSize = 0.1f;
         params.endSize = 0.0f;
-        params.startColor = glm::vec4(baseColor, 1.0f);
-        params.endColor = glm::vec4(glowColor, 0.0f);
+        params.startColor = make_float4(baseColor, 1.0f);
+        params.endColor = make_float4(glowColor, 0.0f);
         params.speed = 1.0f;
-        params.gravity = glm::vec3(0, 0.2f, 0);
+        params.gravity = make_float3(0, 0.2f, 0);
         
         activityParticles = std::make_shared<ParticleSystemNode>(params);
         addChild(activityParticles);
@@ -146,19 +147,19 @@ protected:
         // Rotate core based on activity
         if (core) {
             float speed = rotationSpeed * (1.0f + getActivityLevel() * 2.0f);
-            core->rotate(glm::angleAxis(speed * deltaTime, glm::vec3(0, 1, 0)));
+            core->rotate(glm::angleAxis(speed * deltaTime, make_float3(0, 1, 0)));
         }
         
         // Counter-rotate shell
         if (shell) {
             float speed = rotationSpeed * 0.5f;
-            shell->rotate(glm::angleAxis(-speed * deltaTime, glm::vec3(1, 0, 0)));
+            shell->rotate(glm::angleAxis(-speed * deltaTime, make_float3(1, 0, 0)));
         }
         
         // Pulse connection nodes
         float pulse = 0.8f + 0.2f * sin(pulseTimer);
         for (auto& node : connectionNodes) {
-            node->setScale(glm::vec3(0.2f * pulse));
+            node->setScale(make_float3(0.2f * pulse));
         }
         pulseTimer += deltaTime * 3.0f;
         
@@ -167,11 +168,11 @@ protected:
     }
     
 private:
-    void createConnectionBeam(const glm::vec3& target) {
+    void createConnectionBeam(const float3& target) {
         // Create laser-like beam effect
         auto beam = std::make_shared<MeshNode>();
         beam->setMesh(MeshLibrary::CYLINDER);
-        beam->setScale(glm::vec3(0.05f, 1.0f, 0.05f));
+        beam->setScale(make_float3(0.05f, 1.0f, 0.05f));
         beam->setMaterial(MaterialLibrary::EMISSIVE);
         addChild(beam);
         connectionBeams.push_back(beam);
@@ -183,7 +184,7 @@ private:
             auto& beam = connectionBeams[i];
             float activity = getMetrics().networkIn / 100.0f;
             float scale = 0.02f + activity * 0.08f;
-            beam->setScale(glm::vec3(scale, 1.0f, scale));
+            beam->setScale(make_float3(scale, 1.0f, scale));
         }
     }
     
@@ -201,8 +202,8 @@ public:
     DatabaseVisualization(const ServiceInfo& info) : 
         ServiceVisualization(info),
         numLayers(5) {
-        baseColor = glm::vec3(0.2f, 0.8f, 0.2f);
-        glowColor = glm::vec3(0.4f, 1.0f, 0.4f);
+        baseColor = make_float3(0.2f, 0.8f, 0.2f);
+        glowColor = make_float3(0.4f, 1.0f, 0.4f);
     }
 
 protected:
@@ -211,8 +212,8 @@ protected:
         for (int i = 0; i < numLayers; ++i) {
             auto layer = std::make_shared<MeshNode>();
             layer->setMesh(MeshLibrary::CYLINDER);
-            layer->setScale(glm::vec3(1.5f - i * 0.1f, 0.1f, 1.5f - i * 0.1f));
-            layer->setPosition(glm::vec3(0, i * 0.3f, 0));
+            layer->setScale(make_float3(1.5f - i * 0.1f, 0.1f, 1.5f - i * 0.1f));
+            layer->setPosition(make_float3(0, i * 0.3f, 0));
             
             addChild(layer);
             layers.push_back(layer);
@@ -221,8 +222,8 @@ protected:
         // Central data core
         auto dataCore = std::make_shared<MeshNode>();
         dataCore->setMesh(MeshLibrary::SPHERE);
-        dataCore->setScale(glm::vec3(0.3f));
-        dataCore->setPosition(glm::vec3(0, numLayers * 0.3f + 0.5f, 0));
+        dataCore->setScale(make_float3(0.3f));
+        dataCore->setPosition(make_float3(0, numLayers * 0.3f + 0.5f, 0));
         dataCore->setMaterial(MaterialLibrary::EMISSIVE);
         addChild(dataCore);
         this->dataCore = dataCore;
@@ -231,8 +232,8 @@ protected:
         for (int i = 0; i < 3; ++i) {
             auto ring = std::make_shared<MeshNode>();
             ring->setMesh(MeshLibrary::TORUS);
-            ring->setScale(glm::vec3(2.0f + i * 0.5f, 0.05f, 2.0f + i * 0.5f));
-            ring->setPosition(glm::vec3(0, 0.5f, 0));
+            ring->setScale(make_float3(2.0f + i * 0.5f, 0.05f, 2.0f + i * 0.5f));
+            ring->setPosition(make_float3(0, 0.5f, 0));
             addChild(ring);
             queryRings.push_back(ring);
         }
@@ -241,17 +242,17 @@ protected:
     void createActivityIndicators() override {
         // Data access particles - vertical streams
         ParticleSystemNode::ParticleParams params;
-        params.emitPosition = glm::vec3(0, 0, 0);
-        params.emitDirection = glm::vec3(0, 1, 0);
+        params.emitPosition = make_float3(0, 0, 0);
+        params.emitDirection = make_float3(0, 1, 0);
         params.emitAngle = 10.0f;
         params.emitRate = 20.0f;
         params.particleLife = 1.5f;
         params.startSize = 0.05f;
         params.endSize = 0.02f;
-        params.startColor = glm::vec4(baseColor, 1.0f);
-        params.endColor = glm::vec4(glowColor, 0.0f);
+        params.startColor = make_float4(baseColor, 1.0f);
+        params.endColor = make_float4(glowColor, 0.0f);
         params.speed = 2.0f;
-        params.gravity = glm::vec3(0, 0, 0);
+        params.gravity = make_float3(0, 0, 0);
         
         activityParticles = std::make_shared<ParticleSystemNode>(params);
         addChild(activityParticles);
@@ -266,21 +267,21 @@ protected:
         // Rotate layers at different speeds
         for (size_t i = 0; i < layers.size(); ++i) {
             float speed = 0.2f + i * 0.1f;
-            layers[i]->rotate(glm::angleAxis(speed * deltaTime, glm::vec3(0, 1, 0)));
+            layers[i]->rotate(glm::angleAxis(speed * deltaTime, make_float3(0, 1, 0)));
         }
         
         // Pulse data core based on query activity
         if (dataCore) {
             float pulse = 0.3f + 0.1f * sin(queryTimer * 5.0f) * getActivityLevel();
-            dataCore->setScale(glm::vec3(pulse));
+            dataCore->setScale(make_float3(pulse));
         }
         
         // Animate query rings
         for (size_t i = 0; i < queryRings.size(); ++i) {
             float offset = i * 2.0f;
             float y = 0.5f + 0.2f * sin(queryTimer + offset);
-            queryRings[i]->setPosition(glm::vec3(0, y, 0));
-            queryRings[i]->rotate(glm::angleAxis(0.5f * deltaTime, glm::vec3(0, 1, 0)));
+            queryRings[i]->setPosition(make_float3(0, y, 0));
+            queryRings[i]->rotate(glm::angleAxis(0.5f * deltaTime, make_float3(0, 1, 0)));
         }
         
         queryTimer += deltaTime;
@@ -293,16 +294,16 @@ private:
         for (int i = 0; i < numIndices; ++i) {
             auto index = std::make_shared<MeshNode>();
             index->setMesh(MeshLibrary::PYRAMID);
-            index->setScale(glm::vec3(0.1f, 0.3f, 0.1f));
+            index->setScale(make_float3(0.1f, 0.3f, 0.1f));
             
             float angle = (i / float(numIndices)) * 2.0f * M_PI;
             float radius = 1.8f;
-            index->setPosition(glm::vec3(
+            index->setPosition(make_float3(
                 cos(angle) * radius,
                 0.2f,
                 sin(angle) * radius
             ));
-            index->setRotation(glm::angleAxis(angle, glm::vec3(0, 1, 0)));
+            index->setRotation(glm::angleAxis(angle, make_float3(0, 1, 0)));
             
             addChild(index);
             indexStructures.push_back(index);
@@ -324,8 +325,8 @@ public:
         ServiceVisualization(info),
         numBlocks(7),
         blockSpacing(1.5f) {
-        baseColor = glm::vec3(0.8f, 0.6f, 0.0f);
-        glowColor = glm::vec3(1.0f, 0.8f, 0.0f);
+        baseColor = make_float3(0.8f, 0.6f, 0.0f);
+        glowColor = make_float3(1.0f, 0.8f, 0.0f);
     }
 
 protected:
@@ -334,13 +335,13 @@ protected:
         for (int i = 0; i < numBlocks; ++i) {
             auto block = std::make_shared<MeshNode>();
             block->setMesh(MeshLibrary::CUBE);
-            block->setScale(glm::vec3(0.8f));
+            block->setScale(make_float3(0.8f));
             
             // Arrange in a spiral
             float angle = i * 0.8f;
             float radius = 2.0f;
             float height = i * 0.3f;
-            block->setPosition(glm::vec3(
+            block->setPosition(make_float3(
                 cos(angle) * radius,
                 height,
                 sin(angle) * radius
@@ -358,8 +359,8 @@ protected:
         // Mining visualization node
         auto miningNode = std::make_shared<MeshNode>();
         miningNode->setMesh(MeshLibrary::ICOSAHEDRON);
-        miningNode->setScale(glm::vec3(0.5f));
-        miningNode->setPosition(glm::vec3(0, numBlocks * 0.3f + 1.0f, 0));
+        miningNode->setScale(make_float3(0.5f));
+        miningNode->setPosition(make_float3(0, numBlocks * 0.3f + 1.0f, 0));
         miningNode->setMaterial(MaterialLibrary::EMISSIVE);
         addChild(miningNode);
         this->miningNode = miningNode;
@@ -368,17 +369,17 @@ protected:
     void createActivityIndicators() override {
         // Mining particles
         ParticleSystemNode::ParticleParams params;
-        params.emitPosition = glm::vec3(0, numBlocks * 0.3f + 1.0f, 0);
-        params.emitDirection = glm::vec3(0, -1, 0);
+        params.emitPosition = make_float3(0, numBlocks * 0.3f + 1.0f, 0);
+        params.emitDirection = make_float3(0, -1, 0);
         params.emitAngle = 45.0f;
         params.emitRate = 30.0f;
         params.particleLife = 1.0f;
         params.startSize = 0.08f;
         params.endSize = 0.02f;
-        params.startColor = glm::vec4(baseColor, 1.0f);
-        params.endColor = glm::vec4(glowColor, 0.0f);
+        params.startColor = make_float4(baseColor, 1.0f);
+        params.endColor = make_float4(glowColor, 0.0f);
         params.speed = 1.5f;
-        params.gravity = glm::vec3(0, -0.5f, 0);
+        params.gravity = make_float3(0, -0.5f, 0);
         
         activityParticles = std::make_shared<ParticleSystemNode>(params);
         addChild(activityParticles);
@@ -392,15 +393,15 @@ protected:
         
         // Rotate blocks
         for (auto& block : blocks) {
-            block->rotate(glm::angleAxis(0.3f * deltaTime, glm::vec3(0, 1, 0)));
+            block->rotate(glm::angleAxis(0.3f * deltaTime, make_float3(0, 1, 0)));
         }
         
         // Mining animation
         if (miningNode) {
             miningTimer += deltaTime * 2.0f;
             float scale = 0.5f + 0.1f * sin(miningTimer * 5.0f);
-            miningNode->setScale(glm::vec3(scale));
-            miningNode->rotate(glm::angleAxis(2.0f * deltaTime, glm::vec3(1, 1, 0)));
+            miningNode->setScale(make_float3(scale));
+            miningNode->rotate(glm::angleAxis(2.0f * deltaTime, make_float3(1, 1, 0)));
         }
         
         // Consensus pulse animation
@@ -419,31 +420,31 @@ private:
         auto link = std::make_shared<MeshNode>();
         link->setMesh(MeshLibrary::CYLINDER);
         
-        glm::vec3 fromPos = from->getPosition();
-        glm::vec3 toPos = to->getPosition();
-        glm::vec3 diff = toPos - fromPos;
+        float3 fromPos = from->getPosition();
+        float3 toPos = to->getPosition();
+        float3 diff = toPos - fromPos;
         float length = glm::length(diff);
         
-        link->setScale(glm::vec3(0.05f, length, 0.05f));
+        link->setScale(make_float3(0.05f, length, 0.05f));
         link->setPosition((fromPos + toPos) * 0.5f);
         
         // Orient the link
-        glm::vec3 up = glm::normalize(diff);
-        glm::vec3 forward = glm::vec3(0, 0, 1);
-        glm::vec3 right = glm::cross(up, forward);
+        float3 up = glm::normalize(diff);
+        float3 forward = make_float3(0, 0, 1);
+        float3 right = glm::cross(up, forward);
         if (glm::length(right) < 0.001f) {
-            forward = glm::vec3(1, 0, 0);
+            forward = make_float3(1, 0, 0);
             right = glm::cross(up, forward);
         }
         right = glm::normalize(right);
         forward = glm::cross(right, up);
         
-        glm::mat4 orientation(1.0f);
-        orientation[0] = glm::vec4(right, 0);
-        orientation[1] = glm::vec4(up, 0);
-        orientation[2] = glm::vec4(forward, 0);
-        
-        link->setRotation(glm::quat_cast(orientation));
+        float4x4 orientation = matrix_identity();
+        orientation.columns[0] = make_float4(right.x, right.y, right.z, 0);
+        orientation.columns[1] = make_float4(up.x, up.y, up.z, 0);
+        orientation.columns[2] = make_float4(forward.x, forward.y, forward.z, 0);
+
+        link->setRotation(glm::quat_cast(*(glm::mat4*)&orientation));
         link->setMaterial(MaterialLibrary::EMISSIVE);
         
         addChild(link);
@@ -455,7 +456,7 @@ private:
         for (int i = 0; i < 3; ++i) {
             auto pulse = std::make_shared<MeshNode>();
             pulse->setMesh(MeshLibrary::SPHERE);
-            pulse->setScale(glm::vec3(0.0f));
+            pulse->setScale(make_float3(0.0f));
             pulse->setMaterial(MaterialLibrary::EMISSIVE);
             addChild(pulse);
             consensusPulses.push_back(pulse);
@@ -467,7 +468,7 @@ private:
         for (auto& pulse : consensusPulses) {
             if (pulse->getScale().x < 0.01f) {
                 pulse->setPosition(blocks[0]->getPosition());
-                pulse->setScale(glm::vec3(0.1f));
+                pulse->setScale(make_float3(0.1f));
                 // Animation will be handled in updateChainLinks
                 break;
             }
@@ -477,13 +478,13 @@ private:
     void updateChainLinks(float deltaTime) {
         // Pulse effect through chain
         for (auto& pulse : consensusPulses) {
-            glm::vec3 scale = pulse->getScale();
+            float3 scale = pulse->getScale();
             if (scale.x > 0.01f) {
                 scale *= (1.0f + deltaTime * 3.0f);
                 pulse->setScale(scale);
                 
                 if (scale.x > 5.0f) {
-                    pulse->setScale(glm::vec3(0.0f));
+                    pulse->setScale(make_float3(0.0f));
                 }
             }
         }
@@ -510,8 +511,8 @@ class AIServiceVisualization : public ServiceVisualization {
 public:
     AIServiceVisualization(const ServiceInfo& info) : 
         ServiceVisualization(info) {
-        baseColor = glm::vec3(0.8f, 0.0f, 0.8f);
-        glowColor = glm::vec3(1.0f, 0.2f, 1.0f);
+        baseColor = make_float3(0.8f, 0.0f, 0.8f);
+        glowColor = make_float3(1.0f, 0.2f, 1.0f);
     }
 
 protected:
@@ -527,11 +528,11 @@ protected:
             for (int n = 0; n < layerSizes[layer]; ++n) {
                 auto neuron = std::make_shared<MeshNode>();
                 neuron->setMesh(MeshLibrary::SPHERE);
-                neuron->setScale(glm::vec3(0.2f));
+                neuron->setScale(make_float3(0.2f));
                 
                 float y = (n - layerSizes[layer] / 2.0f) * 0.8f;
                 float x = (layer - numLayers / 2.0f) * layerSpacing;
-                neuron->setPosition(glm::vec3(x, y, 0));
+                neuron->setPosition(make_float3(x, y, 0));
                 
                 addChild(neuron);
                 layerNodes.push_back(neuron);
@@ -548,8 +549,8 @@ protected:
         // Central processing core
         auto core = std::make_shared<MeshNode>();
         core->setMesh(MeshLibrary::OCTAHEDRON);
-        core->setScale(glm::vec3(0.5f));
-        core->setPosition(glm::vec3(0, 0, -1.0f));
+        core->setScale(make_float3(0.5f));
+        core->setPosition(make_float3(0, 0, -1.0f));
         core->setMaterial(MaterialLibrary::EMISSIVE);
         addChild(core);
         this->processingCore = core;
@@ -558,17 +559,17 @@ protected:
     void createActivityIndicators() override {
         // Thought bubble particles
         ParticleSystemNode::ParticleParams params;
-        params.emitPosition = glm::vec3(0, 2.0f, 0);
-        params.emitDirection = glm::vec3(0, 1, 0);
+        params.emitPosition = make_float3(0, 2.0f, 0);
+        params.emitDirection = make_float3(0, 1, 0);
         params.emitAngle = 30.0f;
         params.emitRate = 15.0f;
         params.particleLife = 2.0f;
         params.startSize = 0.15f;
         params.endSize = 0.3f;
-        params.startColor = glm::vec4(baseColor, 0.8f);
-        params.endColor = glm::vec4(glowColor, 0.0f);
+        params.startColor = make_float4(baseColor, 0.8f);
+        params.endColor = make_float4(glowColor, 0.0f);
         params.speed = 0.5f;
-        params.gravity = glm::vec3(0, 0.1f, 0);
+        params.gravity = make_float3(0, 0.1f, 0);
         
         activityParticles = std::make_shared<ParticleSystemNode>(params);
         addChild(activityParticles);
@@ -586,7 +587,7 @@ protected:
                 float phase = neuralTimer * 2.0f - layer * 0.5f - n * 0.1f;
                 float activation = (sin(phase) + 1.0f) * 0.5f;
                 float scale = 0.15f + activation * 0.15f * getActivityLevel();
-                neurons[layer][n]->setScale(glm::vec3(scale));
+                neurons[layer][n]->setScale(make_float3(scale));
                 
                 // Glow effect based on activation
                 // Would update material emission here
@@ -595,9 +596,9 @@ protected:
         
         // Rotate and pulse processing core
         if (processingCore) {
-            processingCore->rotate(glm::angleAxis(deltaTime, glm::vec3(1, 1, 1)));
+            processingCore->rotate(glm::angleAxis(deltaTime, make_float3(1, 1, 1)));
             float pulse = 0.5f + 0.2f * sin(neuralTimer * 3.0f);
-            processingCore->setScale(glm::vec3(pulse));
+            processingCore->setScale(make_float3(pulse));
         }
         
         // Update synapse connections
@@ -622,17 +623,17 @@ private:
                     auto synapse = std::make_shared<MeshNode>();
                     synapse->setMesh(MeshLibrary::CYLINDER);
                     
-                    glm::vec3 fromPos = from->getPosition();
-                    glm::vec3 toPos = to->getPosition();
-                    glm::vec3 diff = toPos - fromPos;
+                    float3 fromPos = from->getPosition();
+                    float3 toPos = to->getPosition();
+                    float3 diff = toPos - fromPos;
                     float length = glm::length(diff);
                     
-                    synapse->setScale(glm::vec3(0.01f, length, 0.01f));
+                    synapse->setScale(make_float3(0.01f, length, 0.01f));
                     synapse->setPosition((fromPos + toPos) * 0.5f);
                     
                     // Orient the synapse
-                    glm::vec3 up = glm::normalize(diff);
-                    glm::quat rotation = glm::rotation(glm::vec3(0, 1, 0), up);
+                    float3 up = glm::normalize(diff);
+                    glm::quat rotation = glm::rotation(make_float3(0, 1, 0), up);
                     synapse->setRotation(rotation);
                     
                     synapse->setMaterial(MaterialLibrary::EMISSIVE);
@@ -654,7 +655,7 @@ private:
                 float scale = 0.005f + intensity * 0.015f * getActivityLevel();
                 
                 auto& synapse = synapses[layer][s];
-                glm::vec3 currentScale = synapse->getScale();
+                float3 currentScale = synapse->getScale();
                 currentScale.x = scale;
                 currentScale.z = scale;
                 synapse->setScale(currentScale);
@@ -712,13 +713,13 @@ protected:
         // Pulse discovery orb
         if (discoveryOrb) {
             float pulse = 0.8f + 0.2f * sin(animationTime * 2.0f);
-            discoveryOrb->setScale(glm::vec3(pulse));
-            discoveryOrb->rotate(glm::angleAxis(deltaTime * 0.5f, glm::vec3(0, 1, 0)));
+            discoveryOrb->setScale(make_float3(pulse));
+            discoveryOrb->rotate(glm::angleAxis(deltaTime * 0.5f, make_float3(0, 1, 0)));
         }
         
         // Animate service ring
         if (expanded && serviceRing) {
-            serviceRing->rotate(glm::angleAxis(deltaTime * 0.2f, glm::vec3(0, 1, 0)));
+            serviceRing->rotate(glm::angleAxis(deltaTime * 0.2f, make_float3(0, 1, 0)));
         }
     }
     
@@ -727,14 +728,14 @@ private:
         // Central interactive orb
         discoveryOrb = std::make_shared<MeshNode>();
         discoveryOrb->setMesh(MeshLibrary::SPHERE);
-        discoveryOrb->setScale(glm::vec3(0.5f));
+        discoveryOrb->setScale(make_float3(0.5f));
         discoveryOrb->setMaterial(MaterialLibrary::EMISSIVE);
         addChild(discoveryOrb);
         
         // Add glow effect
         auto glowRing = std::make_shared<MeshNode>();
         glowRing->setMesh(MeshLibrary::TORUS);
-        glowRing->setScale(glm::vec3(0.7f, 0.1f, 0.7f));
+        glowRing->setScale(make_float3(0.7f, 0.1f, 0.7f));
         glowRing->setMaterial(MaterialLibrary::EMISSIVE);
         discoveryOrb->addChild(glowRing);
     }
@@ -761,7 +762,7 @@ private:
             auto serviceIcon = createServiceIcon(availableServices[i]);
             
             float angle = i * angleStep;
-            serviceIcon->setPosition(glm::vec3(
+            serviceIcon->setPosition(make_float3(
                 cos(angle) * radius,
                 0,
                 sin(angle) * radius
@@ -797,14 +798,14 @@ private:
             mesh->setMesh(MeshLibrary::SPHERE);
         }
         
-        mesh->setScale(glm::vec3(0.3f));
+        mesh->setScale(make_float3(0.3f));
         icon->addChild(mesh);
         
         // Label
         auto label = std::make_shared<UI3DPanel>(1.5f, 0.5f);
         label->setText(info.name);
-        label->setPosition(glm::vec3(0, 0.5f, 0));
-        label->setBackgroundColor(glm::vec4(0.1f, 0.1f, 0.2f, 0.8f));
+        label->setPosition(make_float3(0, 0.5f, 0));
+        label->setBackgroundColor(make_float4(0.1f, 0.1f, 0.2f, 0.8f));
         icon->addChild(label);
         
         // Set up interaction
@@ -838,11 +839,11 @@ public:
         systemHealth = healthScore;
         
         // Update skybox tint
-        glm::vec3 healthyColor(0.0f, 0.1f, 0.2f);
-        glm::vec3 warningColor(0.2f, 0.1f, 0.0f);
-        glm::vec3 criticalColor(0.2f, 0.0f, 0.0f);
+        float3 healthyColor(0.0f, 0.1f, 0.2f);
+        float3 warningColor(0.2f, 0.1f, 0.0f);
+        float3 criticalColor(0.2f, 0.0f, 0.0f);
         
-        glm::vec3 skyTint;
+        float3 skyTint;
         if (healthScore > 0.7f) {
             skyTint = healthyColor;
         } else if (healthScore > 0.3f) {
@@ -886,7 +887,7 @@ private:
     void createSkybox() {
         skybox = std::make_shared<MeshNode>();
         skybox->setMesh(MeshLibrary::SKYBOX);
-        skybox->setScale(glm::vec3(500.0f));
+        skybox->setScale(make_float3(500.0f));
         skybox->setMaterial(MaterialLibrary::SKYBOX);
         addChild(skybox);
     }
@@ -894,8 +895,8 @@ private:
     void createGroundGrid() {
         groundGrid = std::make_shared<MeshNode>();
         groundGrid->setMesh(MeshLibrary::GRID);
-        groundGrid->setScale(glm::vec3(100.0f, 1.0f, 100.0f));
-        groundGrid->setPosition(glm::vec3(0, -5.0f, 0));
+        groundGrid->setScale(make_float3(100.0f, 1.0f, 100.0f));
+        groundGrid->setPosition(make_float3(0, -5.0f, 0));
         groundGrid->setMaterial(MaterialLibrary::GRID);
         addChild(groundGrid);
     }
@@ -903,17 +904,17 @@ private:
     void createAmbientEffects() {
         // Network activity particles
         ParticleSystemNode::ParticleParams params;
-        params.emitPosition = glm::vec3(0, -5.0f, 0);
-        params.emitDirection = glm::vec3(0, 1, 0);
+        params.emitPosition = make_float3(0, -5.0f, 0);
+        params.emitDirection = make_float3(0, 1, 0);
         params.emitAngle = 180.0f;
         params.emitRate = 20.0f;
         params.particleLife = 10.0f;
         params.startSize = 0.05f;
         params.endSize = 0.01f;
-        params.startColor = glm::vec4(0.0f, 0.5f, 1.0f, 0.5f);
-        params.endColor = glm::vec4(0.0f, 0.8f, 1.0f, 0.0f);
+        params.startColor = make_float4(0.0f, 0.5f, 1.0f, 0.5f);
+        params.endColor = make_float4(0.0f, 0.8f, 1.0f, 0.0f);
         params.speed = 2.0f;
-        params.gravity = glm::vec3(0, 0.5f, 0);
+        params.gravity = make_float3(0, 0.5f, 0);
         
         networkParticles = std::make_shared<ParticleSystemNode>(params);
         addChild(networkParticles);
@@ -931,8 +932,8 @@ private:
         for (int i = 0; i < 50; ++i) {
             auto mote = std::make_shared<MeshNode>();
             mote->setMesh(MeshLibrary::SPHERE);
-            mote->setScale(glm::vec3(0.02f));
-            mote->setPosition(glm::vec3(
+            mote->setScale(make_float3(0.02f));
+            mote->setPosition(make_float3(
                 posDist(gen),
                 heightDist(gen),
                 posDist(gen)
@@ -948,7 +949,7 @@ private:
         // Animate data motes
         for (size_t i = 0; i < dataMotes.size(); ++i) {
             auto& mote = dataMotes[i];
-            glm::vec3 pos = mote->getPosition();
+            float3 pos = mote->getPosition();
             
             // Floating motion
             float phase = environmentTime + i * 0.3f;
