@@ -8,6 +8,7 @@
 #import "MetalRenderer.h"
 #import "MetalShaderTypes.h"
 #include "../Shared/Core/World/Entity.h"
+#include "../Shared/SceneGraph/SceneNode.h"
 #include <vector>
 #include <unordered_set>
 
@@ -19,6 +20,12 @@ using namespace FinalStorm;
     id<MTLCommandQueue> _commandQueue;
     id<MTLRenderPipelineState> _pipelineState;
     id<MTLDepthStencilState> _depthState;
+
+    id<MTLTexture> _shadowMap;
+    id<MTLRenderPipelineState> _shadowPipelineState;
+    id<MTLTexture> _postProcessTexture;
+    id<MTLRenderPipelineState> _postProcessPipelineState;
+    id<MTLTexture> _environmentCubemap;
     
     // Buffers
     id<MTLBuffer> _uniformBuffer;
@@ -34,6 +41,7 @@ using namespace FinalStorm;
     // C++ objects
     std::shared_ptr<WorldManager> _worldManager;
     std::shared_ptr<Camera> _camera;
+    std::shared_ptr<SceneNode> _sceneRoot;
     
     // Input state
     FSPoint _lastMousePosition;
@@ -49,6 +57,7 @@ using namespace FinalStorm;
         _device = mtkView.device;
         _worldManager = std::make_shared<WorldManager>();
         _camera = std::make_shared<Camera>();
+        _sceneRoot = std::make_shared<SceneNode>();
         
         mtkView.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
         mtkView.colorPixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
@@ -186,10 +195,34 @@ using namespace FinalStorm;
     depthStateDesc.depthCompareFunction = MTLCompareFunctionLess;
     depthStateDesc.depthWriteEnabled = YES;
     _depthState = [_device newDepthStencilStateWithDescriptor:depthStateDesc];
-    
+
     // Create uniform buffer
     _uniformBuffer = [_device newBufferWithLength:sizeof(Uniforms)
                                           options:MTLResourceStorageModeShared];
+
+    // Shadow map texture
+    MTLTextureDescriptor *shadowDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float
+                                                                                              width:1024
+                                                                                             height:1024
+                                                                                          mipmapped:NO];
+    shadowDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    _shadowMap = [_device newTextureWithDescriptor:shadowDesc];
+
+    // Post-process texture
+    MTLTextureDescriptor *ppDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:view.colorPixelFormat
+                                                                                           width:view.drawableSize.width
+                                                                                          height:view.drawableSize.height
+                                                                                       mipmapped:NO];
+    ppDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    _postProcessTexture = [_device newTextureWithDescriptor:ppDesc];
+
+    // Environment cube map placeholder
+    MTLTextureDescriptor *envDesc = [MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:view.colorPixelFormat size:512 mipmapped:NO];
+    envDesc.usage = MTLTextureUsageShaderRead;
+    _environmentCubemap = [_device newTextureWithDescriptor:envDesc];
+
+    _shadowPipelineState = _pipelineState;
+    _postProcessPipelineState = _pipelineState;
 }
 
 - (void)_loadAssets
@@ -308,9 +341,21 @@ using namespace FinalStorm;
     
     _camera->setPosition(cameraPos);
     _camera->setTarget(cameraPos + forward);
-    
+
     // Update world
     _worldManager->update(deltaTime);
+
+    // Rebuild scene graph with visible entities
+    _sceneRoot->clearChildren();
+    auto visibleEntities = _worldManager->getVisibleEntities(*_camera);
+    for (const auto& entity : visibleEntities) {
+        auto node = std::make_shared<SceneNode>();
+        node->setEntity(entity);
+        node->update(deltaTime);
+        _sceneRoot->addChild(node);
+    }
+
+    _sceneRoot->update(deltaTime);
 }
 
 // In the drawInMTKView method, fix the uniforms update:
@@ -319,72 +364,16 @@ using namespace FinalStorm;
     @autoreleasepool {
         id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
         commandBuffer.label = @"MyCommand";
-        
+
         MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
+        [self renderShadowPassWithCommandBuffer:commandBuffer];
         if(renderPassDescriptor != nil)
         {
-            id<MTLRenderCommandEncoder> renderEncoder =
-                [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-            renderEncoder.label = @"MyRenderEncoder";
-            
-            [renderEncoder setCullMode:MTLCullModeBack];
-            [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-            [renderEncoder setRenderPipelineState:_pipelineState];
-            [renderEncoder setDepthStencilState:_depthState];
-            
-            // Update uniforms
-            Uniforms *uniforms = (Uniforms*)_uniformBuffer.contents;
-            uniforms->viewProjectionMatrix = _camera->getViewProjectionMatrix();
-            
-            // Render ground plane
-            uniforms->modelMatrix = matrix_identity();
-            uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
-            uniforms->color = simd_make_float4(0.3f, 0.3f, 0.3f, 1.0f);
-            
-            [renderEncoder setVertexBuffer:_planeVertexBuffer
-                                    offset:0
-                                   atIndex:BufferIndexMeshPositions];
-            
-            [renderEncoder setVertexBuffer:_uniformBuffer
-                                    offset:0
-                                   atIndex:BufferIndexUniforms];
-            
-            [renderEncoder setFragmentBuffer:_uniformBuffer
-                                      offset:0
-                                     atIndex:BufferIndexUniforms];
-            
-            [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                      indexCount:_planeIndexCount
-                                       indexType:MTLIndexTypeUInt16
-                                     indexBuffer:_planeIndexBuffer
-                               indexBufferOffset:0];
-            
-            // Render entities
-            auto visibleEntities = _worldManager->getVisibleEntities(*_camera);
-            for (const auto& entity : visibleEntities)
-            {
-                if (entity->getMeshName() == "cube")
-                {
-                    uniforms->modelMatrix = entity->getTransform().getMatrix();
-                    uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
-                    uniforms->color = simd_make_float4(0.8f, 0.2f, 0.2f, 1.0f);
-                    
-                    [renderEncoder setVertexBuffer:_cubeVertexBuffer
-                                            offset:0
-                                           atIndex:BufferIndexMeshPositions];
-                    
-                    [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                              indexCount:_cubeIndexCount
-                                               indexType:MTLIndexTypeUInt16
-                                             indexBuffer:_cubeIndexBuffer
-                                       indexBufferOffset:0];
-                }
-            }
-            
-            [renderEncoder endEncoding];
+            [self renderMainPassWithCommandBuffer:commandBuffer renderPassDescriptor:renderPassDescriptor];
+            [self renderPostProcessWithCommandBuffer:commandBuffer renderPassDescriptor:renderPassDescriptor];
             [commandBuffer presentDrawable:view.currentDrawable];
         }
-        
+
         [commandBuffer commit];
     }
 }
@@ -393,6 +382,73 @@ using namespace FinalStorm;
 {
    float aspect = size.width / (float)size.height;
    _camera->setPerspective(60.0f * M_PI / 180.0f, aspect, 0.1f, 1000.0f);
+}
+
+- (void)renderShadowPassWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
+{
+    (void)commandBuffer;
+    // Placeholder for shadow map rendering
+}
+
+- (void)renderMainPassWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
+                 renderPassDescriptor:(MTLRenderPassDescriptor*)renderPassDescriptor
+{
+    id<MTLRenderCommandEncoder> renderEncoder =
+        [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+    renderEncoder.label = @"MainPass";
+
+    [renderEncoder setCullMode:MTLCullModeBack];
+    [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+    [renderEncoder setRenderPipelineState:_pipelineState];
+    [renderEncoder setDepthStencilState:_depthState];
+
+    Uniforms *uniforms = (Uniforms*)_uniformBuffer.contents;
+    uniforms->viewProjectionMatrix = _camera->getViewProjectionMatrix();
+
+    // Render ground plane
+    uniforms->modelMatrix = matrix_identity();
+    uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
+    uniforms->color = simd_make_float4(0.3f, 0.3f, 0.3f, 1.0f);
+
+    [renderEncoder setVertexBuffer:_planeVertexBuffer offset:0 atIndex:BufferIndexMeshPositions];
+    [renderEncoder setVertexBuffer:_uniformBuffer offset:0 atIndex:BufferIndexUniforms];
+    [renderEncoder setFragmentBuffer:_uniformBuffer offset:0 atIndex:BufferIndexUniforms];
+
+    [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                indexCount:_planeIndexCount
+                                 indexType:MTLIndexTypeUInt16
+                               indexBuffer:_planeIndexBuffer
+                         indexBufferOffset:0];
+
+    // Render scene graph
+    for (const auto& child : _sceneRoot->getChildren())
+    {
+        if (!child) continue;
+        auto entity = child->getEntity();
+        if (!entity || entity->getMeshName() != "cube") continue;
+
+        uniforms->modelMatrix = child->getWorldMatrix();
+        uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
+        uniforms->color = simd_make_float4(0.8f, 0.2f, 0.2f, 1.0f);
+
+        [renderEncoder setVertexBuffer:_cubeVertexBuffer offset:0 atIndex:BufferIndexMeshPositions];
+
+        [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                    indexCount:_cubeIndexCount
+                                     indexType:MTLIndexTypeUInt16
+                                   indexBuffer:_cubeIndexBuffer
+                             indexBufferOffset:0];
+    }
+
+    [renderEncoder endEncoding];
+}
+
+- (void)renderPostProcessWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
+                     renderPassDescriptor:(MTLRenderPassDescriptor*)renderPassDescriptor
+{
+    (void)commandBuffer;
+    (void)renderPassDescriptor;
+    // Placeholder for post-processing
 }
 
 #pragma mark - Input Handling
@@ -447,4 +503,8 @@ using namespace FinalStorm;
    _keysPressed.erase(keyCode);
 }
 
-@end            
+@synthesize worldManager = _worldManager;
+@synthesize camera = _camera;
+@synthesize sceneRoot = _sceneRoot;
+
+@end

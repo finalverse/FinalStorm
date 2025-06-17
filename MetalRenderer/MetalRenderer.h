@@ -12,6 +12,7 @@ typedef CGPoint FSPoint;
 
 #include "../Shared/Core/Math/Math.h"
 #include "../Shared/Core/World/WorldManager.h"
+#include "../Shared/SceneGraph/SceneNode.h"
 #include <memory>
 
 @interface MetalRenderer : NSObject<MTKViewDelegate>
@@ -24,7 +25,15 @@ typedef CGPoint FSPoint;
 - (void)handleKeyDown:(uint16_t)keyCode;
 - (void)handleKeyUp:(uint16_t)keyCode;
 
+// Rendering passes
+- (void)renderShadowPassWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer;
+- (void)renderMainPassWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
+                 renderPassDescriptor:(MTLRenderPassDescriptor*)renderPassDescriptor;
+- (void)renderPostProcessWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
+                     renderPassDescriptor:(MTLRenderPassDescriptor*)renderPassDescriptor;
+
 @property (nonatomic, readonly) std::shared_ptr<FinalStorm::WorldManager> worldManager;
 @property (nonatomic, readonly) std::shared_ptr<FinalStorm::Camera> camera;
+@property (nonatomic, readonly) std::shared_ptr<FinalStorm::SceneNode> sceneRoot;
 
 @end
