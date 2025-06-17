@@ -29,6 +29,8 @@ set(SHARED_SOURCES
     Shared/SceneGraph/ServiceNode.cpp
     Shared/Core/Services/WebServerViz.cpp
     Shared/Core/Services/DatabaseViz.cpp
+    Shared/Core/Environment/EnvironmentController.cpp
+    Shared/Core/Visualization/DataVisualizer.cpp
     Shared/UI3D/Panel.cpp
     Shared/UI3D/HolographicDisplay.cpp
     Shared/UI3D/InteractiveOrb.cpp

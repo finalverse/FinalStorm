@@ -11,6 +11,8 @@
 #include "../Shared/SceneGraph/SceneNode.h"
 #include "../Shared/Core/Services/WebServerViz.h"
 #include "../Shared/Core/Services/DatabaseViz.h"
+#include "../Shared/Core/Environment/EnvironmentController.h"
+#include "../Shared/Core/Visualization/DataVisualizer.h"
 #include <vector>
 #include <unordered_set>
 
@@ -45,11 +47,14 @@ using namespace FinalStorm;
     std::shared_ptr<Camera> _camera;
     std::shared_ptr<SceneNode> _sceneRoot;
     std::vector<std::shared_ptr<ServiceRepresentation>> _services;
+    std::unique_ptr<EnvironmentController> _environmentController;
+    std::unique_ptr<DataVisualizer> _dataVisualizer;
     
     // Input state
     FSPoint _lastMousePosition;
     bool _mouseDown;
     std::unordered_set<uint16_t> _keysPressed;
+    float _elapsedTime;
 }
 
 - (nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)mtkView
@@ -61,6 +66,9 @@ using namespace FinalStorm;
         _worldManager = std::make_shared<WorldManager>();
         _camera = std::make_shared<Camera>();
         _sceneRoot = std::make_shared<SceneNode>();
+        _environmentController = std::make_unique<EnvironmentController>();
+        _dataVisualizer = std::make_unique<DataVisualizer>();
+        _elapsedTime = 0.0f;
         
         mtkView.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
         mtkView.colorPixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
@@ -337,6 +345,8 @@ using namespace FinalStorm;
 
 - (void)updateWithDeltaTime:(float)deltaTime
 {
+    _elapsedTime += deltaTime;
+
     // Handle keyboard input
     float moveSpeed = 5.0f * deltaTime;
     float3 cameraPos = _camera->getPosition();
@@ -375,12 +385,26 @@ using namespace FinalStorm;
     }
 
     _sceneRoot->update(deltaTime);
+
+    // Example metrics animation
+    ServiceMetrics metrics{};
+    metrics.cpuUsage = (sinf(_elapsedTime) * 0.5f + 0.5f) * 100.0f;
+    metrics.memoryUsage = (cosf(_elapsedTime * 0.5f) * 0.5f + 0.5f) * 100.0f;
+    metrics.activeConnections = (int)(50 + 50 * sinf(_elapsedTime * 0.3f));
+
+    float health = _dataVisualizer->computeHealthScore(metrics);
+    _environmentController->updateFromHealth(health);
 }
 
 // In the drawInMTKView method, fix the uniforms update:
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
     @autoreleasepool {
+        EnvironmentState state = _environmentController->getState();
+        view.clearColor = MTLClearColorMake(state.skyboxTint.x,
+                                            state.skyboxTint.y,
+                                            state.skyboxTint.z,
+                                            1.0);
         id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
         commandBuffer.label = @"MyCommand";
 
@@ -427,7 +451,9 @@ using namespace FinalStorm;
     // Render ground plane
     uniforms->modelMatrix = matrix_identity();
     uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
-    uniforms->color = simd_make_float4(0.3f, 0.3f, 0.3f, 1.0f);
+    EnvironmentState state = _environmentController->getState();
+    float pulse = state.groundPulse;
+    uniforms->color = simd_make_float4(pulse, pulse, pulse, 1.0f);
 
     [renderEncoder setVertexBuffer:_planeVertexBuffer offset:0 atIndex:BufferIndexMeshPositions];
     [renderEncoder setVertexBuffer:_uniformBuffer offset:0 atIndex:BufferIndexUniforms];
