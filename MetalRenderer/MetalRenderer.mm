@@ -9,6 +9,8 @@
 #import "MetalShaderTypes.h"
 #include "../Shared/Core/World/Entity.h"
 #include "../Shared/SceneGraph/SceneNode.h"
+#include "../Shared/Core/Services/WebServerViz.h"
+#include "../Shared/Core/Services/DatabaseViz.h"
 #include <vector>
 #include <unordered_set>
 
@@ -42,6 +44,7 @@ using namespace FinalStorm;
     std::shared_ptr<WorldManager> _worldManager;
     std::shared_ptr<Camera> _camera;
     std::shared_ptr<SceneNode> _sceneRoot;
+    std::vector<std::shared_ptr<ServiceRepresentation>> _services;
     
     // Input state
     FSPoint _lastMousePosition;
@@ -65,7 +68,18 @@ using namespace FinalStorm;
         
         [self _loadMetalWithView:mtkView];
         [self _loadAssets];
-        
+
+        // Add basic services
+        auto webService = std::make_shared<WebServerViz>();
+        webService->createVisualization();
+        _sceneRoot->addChild(webService);
+        _services.push_back(webService);
+
+        auto dbService = std::make_shared<DatabaseViz>();
+        dbService->createVisualization();
+        _sceneRoot->addChild(dbService);
+        _services.push_back(dbService);
+
         // Set initial camera position
         _camera->setPosition(float3{0.0f, 5.0f, 10.0f});
         _camera->setTarget(float3{0.0f, 0.0f, 0.0f});
@@ -353,6 +367,11 @@ using namespace FinalStorm;
         node->setEntity(entity);
         node->update(deltaTime);
         _sceneRoot->addChild(node);
+    }
+
+    // Reattach service nodes
+    for (const auto& service : _services) {
+        _sceneRoot->addChild(service);
     }
 
     _sceneRoot->update(deltaTime);
