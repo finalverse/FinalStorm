@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(FinalStorm)
+project(FinalStorm VERSION 1.0.0 LANGUAGES CXX OBJCXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,51 +16,10 @@ find_library(APPKIT_FRAMEWORK AppKit)
 find_library(UIKIT_FRAMEWORK UIKit)
 find_library(COREGRAPHICS_FRAMEWORK CoreGraphics)
 
-# Scene sources
-set(SCENE_SOURCES
-    src/Scene/Scene.cpp
-    src/Scene/SceneNode.cpp
-    src/Scene/SceneManager.cpp
-    src/Scene/CameraController.cpp
-)
-
-# Service sources
-set(SERVICE_SOURCES
-    src/Services/ServiceEntity.cpp
-    src/Services/ServiceFactory.cpp
-    src/Services/ServiceMetricsUpdater.cpp
-    src/Services/MetricsMonitor.cpp
-    src/Services/ServiceLayoutUtils.cpp
-)
-
-# Service visualization sources
-set(SERVICE_VIZ_SOURCES
-    src/Services/Visualizations/APIGatewayViz.cpp
-    src/Services/Visualizations/AIServiceViz.cpp
-    src/Services/Visualizations/AudioServiceViz.cpp
-    src/Services/Visualizations/WorldEngineViz.cpp
-    src/Services/Visualizations/DatabaseViz.cpp
-    src/Services/Visualizations/BlockchainViz.cpp
-    src/Services/Visualizations/CommunityViz.cpp
-)
-
-# Service component sources
-set(SERVICE_COMPONENT_SOURCES
-    src/Services/Components/ParticleEmitter.cpp
-    src/Services/Components/ConnectionBeam.cpp
-)
-
-# UI sources
-set(UI_SOURCES
-    src/UI/UI3DPanel.cpp
-    src/UI/HolographicDisplay.cpp
-    src/UI/InteractiveOrb.cpp
-    src/UI/ServiceDiscoveryUI.cpp
-    src/UI/MetricsDisplay.cpp
-)
-
-# Source files
-set(SHARED_SOURCES
+# Core sources
+set(CORE_SOURCES
+    src/main.cpp
+    src/FinalStormApp.cpp
     src/Core/Math/Math.cpp
     src/Core/World/Entity.cpp
     src/Core/World/WorldManager.cpp
@@ -69,56 +28,116 @@ set(SHARED_SOURCES
     src/Core/Audio/AudioEngine.cpp
     src/Core/Audio/SpatialAudioSystem.cpp
     src/Core/Input/InteractionManager.cpp
+)
+
+# Scene sources
+set(SCENE_SOURCES
+    src/Scene/SceneManager.cpp
     src/Scene/SceneNode.cpp
-    src/Scene/ServiceNode.cpp
-    src/Scene/ServiceVisualizations.cpp
-    src/Core/Services/WebServerViz.cpp
-    src/Core/Services/DatabaseViz.cpp
-    src/Core/Services/ServiceEntity.cpp
+    src/Scene/CameraController.cpp
+)
+
+# Service sources
+set(SERVICE_SOURCES
+    src/Services/ServiceEntity.cpp
+    src/Services/ServiceFactory.cpp
+    src/Services/ServiceNode.cpp
+    src/Services/ServiceVisualizations.cpp
+    src/Services/Visualizations/DatabaseViz.cpp
+    src/Services/Visualizations/WebServerViz.cpp
+)
+
+# Environment sources
+set(ENVIRONMENT_SOURCES
     src/Core/Environment/EnvironmentController.cpp
-    src/Core/Visualization/DataVisualizer.cpp
-    src/Core/World/SceneManager.cpp
+)
+
+# UI sources
+set(UI_SOURCES
     src/UI/Panel.cpp
     src/UI/HolographicDisplay.cpp
     src/UI/InteractiveOrb.cpp
 )
 
-set(METAL_RENDERER_SOURCES
-    src/Rendering/Metal/MetalRenderer.mm
+# Visualization sources
+set(VISUALIZATION_SOURCES
+    src/Core/Visualization/DataVisualizer.cpp
 )
 
-# Metal shaders
-set(METAL_SHADERS
-    src/Rendering/Metal/Shaders.metal
+# Rendering sources
+set(RENDERING_SOURCES
+    src/Renderer/Metal/MetalRenderer.mm
 )
 
-# Set the shader files as resources
-set_source_files_properties(${METAL_SHADERS} PROPERTIES
-    MACOSX_PACKAGE_LOCATION Resources
+# Shader files
+set(SHADER_FILES
+    shaders/Common.metal
+    shaders/Core.metal
+    shaders/Service.metal
+    shaders/Environment.metal
+    shaders/UI.metal
+    shaders/Particles.metal
+    shaders/PostProcess.metal
 )
 
-# Always create macOS target
+# Combine all sources
+set(ALL_SOURCES
+    ${CORE_SOURCES}
+    ${SCENE_SOURCES}
+    ${SERVICE_SOURCES}
+    ${ENVIRONMENT_SOURCES}
+    ${UI_SOURCES}
+    ${VISUALIZATION_SOURCES}
+    ${RENDERING_SOURCES}
+)
+
+# macOS target
 add_executable(FinalStorm MACOSX_BUNDLE
-    ${SHARED_SOURCES}
-    ${METAL_RENDERER_SOURCES}
+    ${ALL_SOURCES}
     src/Platform/macOS/main.mm
     src/Platform/macOS/AppDelegate.mm
     src/Platform/macOS/GameViewController.mm
-    ${METAL_SHADERS}
 )
 
-set_target_properties(FinalStorm PROPERTIES
-    MACOSX_BUNDLE TRUE
-    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS/Info.plist
-    MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm"
-    MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm"
-    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.finalverse.finalstorm"
-    XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
-    XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++"
+# iOS target
+add_executable(FinalStorm-iOS MACOSX_BUNDLE
+    ${ALL_SOURCES}
+    src/Platform/iOS/main.mm
+    src/Platform/iOS/AppDelegate.mm
+    src/Platform/iOS/GameViewController.mm
+    src/Platform/iOS/ARMode.mm
 )
 
-target_include_directories(FinalStorm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+# Include directories
+target_include_directories(FinalStorm
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Core
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Scene
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Services
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Core/Environment
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/UI
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer
+)
 
+target_include_directories(FinalStorm-iOS
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Core
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Scene
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Services
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Core/Environment
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/UI
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer
+)
+
+# Link frameworks
 target_link_libraries(FinalStorm
     ${METAL_FRAMEWORK}
     ${METALKIT_FRAMEWORK}
@@ -129,37 +148,52 @@ target_link_libraries(FinalStorm
     ${APPKIT_FRAMEWORK}
 )
 
+target_link_libraries(FinalStorm-iOS
+    "-framework Metal"
+    "-framework MetalKit"
+    "-framework QuartzCore"
+    "-framework CoreFoundation"
+    "-framework Foundation"
+    "-framework CoreGraphics"
+    "-framework UIKit"
+)
+
+set_source_files_properties(${SHADER_FILES} PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources
+)
+
 # Shader compilation for macOS
 add_custom_command(
     TARGET FinalStorm POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources
-    COMMAND xcrun -sdk macosx metal -c ${CMAKE_CURRENT_SOURCE_DIR}/src/Rendering/Metal/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
+    COMMAND xcrun -sdk macosx metal -c ${SHADER_FILES} -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air
     COMMAND xcrun -sdk macosx metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders.air -o ${CMAKE_CURRENT_BINARY_DIR}/default.metallib
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm>/Resources/
     COMMENT "Compiling Metal shaders for macOS"
 )
 
-# Always create iOS target (it will show up in Xcode even if not buildable on macOS)
-add_executable(FinalStorm-iOS MACOSX_BUNDLE
-    ${SHARED_SOURCES}
-    ${METAL_RENDERER_SOURCES}
-    src/Platform/iOS/main.mm
-    src/Platform/iOS/AppDelegate.mm
-    src/Platform/iOS/GameViewController.mm
-    ${METAL_SHADERS}
+# Shader compilation for iOS
+add_custom_command(
+    TARGET FinalStorm-iOS POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources
+    COMMAND xcrun -sdk iphoneos metal -c ${SHADER_FILES} -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air
+    COMMAND xcrun -sdk iphoneos metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air -o ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources/default.metallib
+    COMMENT "Compiling Metal shaders for iOS"
 )
 
-# Add after the iOS target creation
-if(TARGET FinalStorm-iOS)
-    # Copy shader source as a fallback
-    add_custom_command(
-        TARGET FinalStorm-iOS POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/Rendering/Metal/Shaders.metal
-            $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources/Shaders.metal
-        COMMENT "Copying shader source for iOS"
-    )
-endif()
+target_compile_definitions(FinalStorm PRIVATE SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+target_compile_definitions(FinalStorm-iOS PRIVATE SHADER_PATH="${CMAKE_CURRENT_SOURCE_DIR}/shaders")
+
+set_target_properties(FinalStorm PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS/Info.plist
+    MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm"
+    MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm"
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.finalverse.finalstorm"
+    XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES"
+    XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++"
+)
 
 set_target_properties(FinalStorm-iOS PROPERTIES
     MACOSX_BUNDLE TRUE
@@ -176,27 +210,3 @@ set_target_properties(FinalStorm-iOS PROPERTIES
     XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphonesimulator iphoneos"
     XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS "$(inherited)"
 )
-
-target_include_directories(FinalStorm-iOS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-
-# Link iOS frameworks explicitly
-target_link_libraries(FinalStorm-iOS
-    "-framework Metal"
-    "-framework MetalKit"
-    "-framework QuartzCore"
-    "-framework CoreFoundation"
-    "-framework Foundation"
-    "-framework CoreGraphics"
-    "-framework UIKit"
-)
-
-# Shader compilation for iOS
-add_custom_command(
-    TARGET FinalStorm-iOS POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources
-    COMMAND xcrun -sdk iphoneos metal -c ${CMAKE_CURRENT_SOURCE_DIR}/src/Rendering/Metal/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air
-    COMMAND xcrun -sdk iphoneos metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air -o ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources/default.metallib
-    COMMENT "Compiling Metal shaders for iOS"
-)
-
