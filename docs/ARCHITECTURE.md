@@ -34,13 +34,6 @@ High Level Architecture
 |  - EnvironmentController & DataVisualizer               |
 |  - Input (InteractionManager)                           |
 +---------------------------------------------------------+
-          |
-          v
-+------------------+             +------------------+
-| Resources        |             | Build scripts    |
-| (Assets, shaders)|             | CMake, setup*.sh |
-+------------------+             +------------------+
-```
 
 ## Core Modules
 
@@ -98,9 +91,6 @@ FinalStorm/
     Platform/macOS/  -> from macOS/
     Platform/iOS/    -> from iOS/
     main.cpp         -> shared entry from macOS/main.mm and iOS/main.mm
-  resources/         -> from Resources/
-  scripts/           -> generate_xcodeproj.sh, setup_xcode_project.sh, verify_structure.sh
-```
 
 A top level `FinalStormApp.cpp` would construct the renderer and drive the
 platform layer. Common Metal shaders could live in `shaders/FinalStorm.metal`.
@@ -115,13 +105,11 @@ FinalStorm/
 ├── setup_xcode_project.sh
 ├── generate_xcodeproj.sh
 ├── verify_structure.sh
-│
 ├── docs/                           # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── API.md
 │   ├── BUILD.md
 │   └── CONTRIBUTING.md
-│
 ├── include/FinalStorm/             # Public headers (for library usage)
 │   ├── Core/
 │   │   ├── Math.h                 # Public math utilities
@@ -129,7 +117,6 @@ FinalStorm/
 │   ├── Networking/
 │   │   └── FinalverseClient.h     # Public client interface
 │   └── FinalStorm.h               # Main public header
-│
 ├── src/                            # Implementation files
 │   ├── main.cpp                   # Main entry point (creates FinalStormApp)
 │   ├── FinalStormApp.cpp          # Application class implementation
@@ -269,7 +256,6 @@ FinalStorm/
 │           ├── Info.plist
 │           ├── FinalStorm.entitlements
 │           └── main.mm
-│
 ├── shaders/                       # Shader files
 │   ├── Common.metal              # Common shader functions
 │   ├── Service.metal             # Service visualization shaders
@@ -277,7 +263,6 @@ FinalStorm/
 │   ├── UI.metal                  # UI shaders
 │   ├── Particles.metal           # Particle shaders
 │   └── PostProcess.metal         # Post-processing shaders
-│
 ├── assets/                        # Asset files
 │   ├── textures/
 │   │   ├── skybox/
@@ -285,17 +270,10 @@ FinalStorm/
 │   │   └── ui/
 │   ├── models/
 │   └── audio/
-│
-├── Resources/                     # Platform resources
-│   └── Assets.xcassets
-│       ├── AppIcon.appiconset/
-│       └── ...
-│
 ├── tests/                         # Unit tests
 │   ├── Core/
 │   ├── Scene/
 │   └── Services/
-│
 └── external/                      # Third-party dependencies
     └── glm/                      # If not using system GLM
 ```

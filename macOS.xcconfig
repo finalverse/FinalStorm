@@ -1,6 +1,0 @@
-// macOS.xcconfig
-#include "Shared.xcconfig"
-
-MACOSX_DEPLOYMENT_TARGET = 11.0
-PRODUCT_NAME = FinalStorm
-PRODUCT_BUNDLE_IDENTIFIER = com.finalverse.finalstorm.macos

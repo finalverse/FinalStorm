@@ -1,7 +1,0 @@
-// iOS.xcconfig
-#include "Shared.xcconfig"
-
-IPHONEOS_DEPLOYMENT_TARGET = 14.0
-PRODUCT_NAME = FinalStorm
-PRODUCT_BUNDLE_IDENTIFIER = com.finalverse.finalstorm.ios
-TARGETED_DEVICE_FAMILY = 1,2

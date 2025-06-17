@@ -29,6 +29,7 @@ To generate the Xcode project run:
 This script creates a `build` directory and produces `FinalStorm.xcodeproj`.
 Open the project in Xcode to build and run the client.
 
+
 When opening the generated project, ensure the **FinalStorm-iOS** target
 uses the iOS SDK. In Xcode's Build Settings, the **Base SDK** should be
 either *iPhoneOS* or *iPhoneSimulator*. If you see build errors such as
