@@ -13,6 +13,7 @@
 #include "../Shared/Core/Services/DatabaseViz.h"
 #include "../Shared/Core/Environment/EnvironmentController.h"
 #include "../Shared/Core/Visualization/DataVisualizer.h"
+#include "../Shared/Core/Audio/SpatialAudioSystem.h"
 #include <vector>
 #include <unordered_set>
 
@@ -49,6 +50,8 @@ using namespace FinalStorm;
     std::vector<std::shared_ptr<ServiceRepresentation>> _services;
     std::unique_ptr<EnvironmentController> _environmentController;
     std::unique_ptr<DataVisualizer> _dataVisualizer;
+    std::shared_ptr<AudioEngine> _audioEngine;
+    std::unique_ptr<SpatialAudioSystem> _spatialAudioSystem;
     
     // Input state
     FSPoint _lastMousePosition;
@@ -68,6 +71,8 @@ using namespace FinalStorm;
         _sceneRoot = std::make_shared<SceneNode>();
         _environmentController = std::make_unique<EnvironmentController>();
         _dataVisualizer = std::make_unique<DataVisualizer>();
+        _audioEngine = std::make_shared<AudioEngine>();
+        _spatialAudioSystem = std::make_unique<SpatialAudioSystem>(_audioEngine);
         _elapsedTime = 0.0f;
         
         mtkView.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
@@ -82,11 +87,15 @@ using namespace FinalStorm;
         webService->createVisualization();
         _sceneRoot->addChild(webService);
         _services.push_back(webService);
+        if (_spatialAudioSystem)
+            _spatialAudioSystem->registerService(webService);
 
         auto dbService = std::make_shared<DatabaseViz>();
         dbService->createVisualization();
         _sceneRoot->addChild(dbService);
         _services.push_back(dbService);
+        if (_spatialAudioSystem)
+            _spatialAudioSystem->registerService(dbService);
 
         // Set initial camera position
         _camera->setPosition(float3{0.0f, 5.0f, 10.0f});
@@ -394,6 +403,12 @@ using namespace FinalStorm;
 
     float health = _dataVisualizer->computeHealthScore(metrics);
     _environmentController->updateFromHealth(health);
+
+    if (_spatialAudioSystem) {
+        float3 listenerPos = _camera->getPosition();
+        float3 listenerForward = simd_normalize(_camera->getTarget() - listenerPos);
+        _spatialAudioSystem->update(deltaTime, *_environmentController, listenerPos, listenerForward);
+    }
 }
 
 // In the drawInMTKView method, fix the uniforms update:
