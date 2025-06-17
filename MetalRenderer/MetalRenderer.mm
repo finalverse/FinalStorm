@@ -71,24 +71,71 @@ using namespace FinalStorm;
     _commandQueue = [_device newCommandQueue];
     
     // Load shaders
-    NSString *libPath = [[NSBundle mainBundle] pathForResource:@"default" ofType:@"metallib"];
-    NSError *libraryError = nil;
     id<MTLLibrary> defaultLibrary = nil;
+    NSError *error = nil;
+    
+    // First try to load the compiled metallib
+    NSString *libPath = [[NSBundle mainBundle] pathForResource:@"default" ofType:@"metallib"];
     if (libPath) {
-        defaultLibrary = [_device newLibraryWithFile:libPath error:&libraryError];
+        defaultLibrary = [_device newLibraryWithFile:libPath error:&error];
         if (!defaultLibrary) {
-            NSLog(@"Failed to load Metal library at %@, error %@", libPath, libraryError);
+            NSLog(@"Failed to load Metal library at %@, error %@", libPath, error);
         }
     } else {
         NSLog(@"default.metallib not found in bundle");
     }
+    
+    // If metallib loading failed, try to compile from source
+    if (!defaultLibrary) {
+        NSLog(@"Attempting to compile shaders from source...");
+        NSString *shaderPath = [[NSBundle mainBundle] pathForResource:@"Shaders" ofType:@"metal"];
+        if (!shaderPath) {
+            // Try alternative paths
+            NSArray *possiblePaths = @[
+                @"MetalRenderer/Shaders.metal",
+                @"Shaders.metal",
+                @"../MetalRenderer/Shaders.metal"
+            ];
+            
+            for (NSString *path in possiblePaths) {
+                NSString *fullPath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:path];
+                if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath]) {
+                    shaderPath = fullPath;
+                    break;
+                }
+            }
+        }
+        
+        if (shaderPath) {
+            NSError *libraryError = nil;
+            NSString *shaderSource = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:&libraryError];
+            if (shaderSource) {
+                defaultLibrary = [_device newLibraryWithSource:shaderSource options:nil error:&libraryError];
+                if (!defaultLibrary) {
+                    NSLog(@"Failed to compile shader from source: %@", libraryError);
+                }
+            } else {
+                NSLog(@"Failed to read shader source: %@", libraryError);
+            }
+        }
+    }
+    
+    // As a last resort, use the default library
+    if (!defaultLibrary) {
+        NSLog(@"Using device default library as fallback");
+        defaultLibrary = [_device newDefaultLibrary];
+    }
 
     id<MTLFunction> vertexFunction = [defaultLibrary newFunctionWithName:@"vertexShader"];
     id<MTLFunction> fragmentFunction = [defaultLibrary newFunctionWithName:@"fragmentShader"];
+    
     if (!vertexFunction || !fragmentFunction) {
         NSLog(@"Failed to find shader functions in Metal library");
+        // Don't continue if we can't find the functions
+        return;
     }
     
+    // Rest of the pipeline setup...
     // Configure pipeline
     MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
     pipelineStateDescriptor.label = @"MyPipeline";
@@ -123,11 +170,11 @@ using namespace FinalStorm;
     
     pipelineStateDescriptor.vertexDescriptor = vertexDescriptor;
     
-    NSError *error = NULL;
-    _pipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&error];
+    NSError *pipelineError = NULL;
+    _pipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&pipelineError];
     if (!_pipelineState)
     {
-        NSLog(@"Failed to created pipeline state, error %@", error);
+        NSLog(@"Failed to created pipeline state, error %@", pipelineError);
     }
     
     // Create depth state

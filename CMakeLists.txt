@@ -35,6 +35,11 @@ set(METAL_SHADERS
     MetalRenderer/Shaders.metal
 )
 
+# Set the shader files as resources
+set_source_files_properties(${METAL_SHADERS} PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources
+)
+
 # Always create macOS target
 add_executable(FinalStorm MACOSX_BUNDLE
     ${SHARED_SOURCES}
@@ -87,6 +92,18 @@ add_executable(FinalStorm-iOS MACOSX_BUNDLE
     ${METAL_SHADERS}
 )
 
+# Add after the iOS target creation
+if(TARGET FinalStorm-iOS)
+    # Copy shader source as a fallback
+    add_custom_command(
+        TARGET FinalStorm-iOS POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy 
+            ${CMAKE_CURRENT_SOURCE_DIR}/MetalRenderer/Shaders.metal 
+            $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources/Shaders.metal
+        COMMENT "Copying shader source for iOS"
+    )
+endif()
+
 set_target_properties(FinalStorm-iOS PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/iOS/Info.plist
@@ -120,8 +137,9 @@ target_link_libraries(FinalStorm-iOS
 add_custom_command(
     TARGET FinalStorm-iOS POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources
-    COMMAND xcrun -sdk iphoneos metal -c ${CMAKE_CURRENT_SOURCE_DIR}/MetalRenderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air || xcrun -sdk iphonesimulator metal -c ${CMAKE_CURRENT_SOURCE_DIR}/MetalRenderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air
-    COMMAND xcrun -sdk iphoneos metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air -o ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib || xcrun -sdk iphonesimulator metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air -o ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib
+    COMMAND xcrun -sdk iphoneos metal -c ${CMAKE_CURRENT_SOURCE_DIR}/MetalRenderer/Shaders.metal -o ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air
+    COMMAND xcrun -sdk iphoneos metallib ${CMAKE_CURRENT_BINARY_DIR}/Shaders-iOS.air -o ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/default-iOS.metallib $<TARGET_BUNDLE_CONTENT_DIR:FinalStorm-iOS>/Resources/default.metallib
     COMMENT "Compiling Metal shaders for iOS"
 )
+
