@@ -4,6 +4,8 @@ FinalStorm is an experimental client for connecting to the Finalverse network an
 other compatible virtual world platforms. It is built with C++17 and Metal to
 run on macOS and iOS.
 
+For an overview of the code layout see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Features
 
 - Basic scene and entity management
