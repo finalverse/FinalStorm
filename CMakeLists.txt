@@ -28,6 +28,7 @@ set(SHARED_SOURCES
     Shared/Core/Input/InteractionManager.cpp
     Shared/SceneGraph/SceneNode.cpp
     Shared/SceneGraph/ServiceNode.cpp
+    Shared/SceneGraph/ServiceVisualizations.cpp
     Shared/Core/Services/WebServerViz.cpp
     Shared/Core/Services/DatabaseViz.cpp
     Shared/Core/Services/ServiceEntity.cpp
