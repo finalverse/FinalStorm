@@ -82,7 +82,11 @@ using namespace FinalStorm;
             NSLog(@"Failed to load Metal library at %@, error %@", libPath, error);
         }
     } else {
-        NSLog(@"default.metallib not found in bundle");
+        NSLog(@"default.metallib not found in bundle, attempting newDefaultLibrary");
+        defaultLibrary = [_device newDefaultLibrary];
+        if (!defaultLibrary) {
+            NSLog(@"Failed to load default Metal library");
+        }
     }
     
     // If metallib loading failed, try to compile from source
