@@ -7,11 +7,10 @@
 
 #include "FinalverseClient.h"
 #include "../World/WorldManager.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <websocketpp/config/asio_no_tls_client.hpp>
+#include <websocketpp/client.hpp>
+#include <websocketpp/common/thread.hpp>
+#include <sstream>
 #include <iostream>
 
 namespace FinalStorm {
@@ -19,9 +18,9 @@ namespace FinalStorm {
 FinalverseClient::FinalverseClient()
     : m_connected(false)
     , m_port(0)
-    , m_socket(-1)
     , m_running(false)
     , m_worldManager(nullptr)
+    , m_dataVisualizer(nullptr)
 {
 }
 
@@ -35,124 +34,115 @@ void FinalverseClient::connect(const std::string& host, uint16_t port, ConnectCa
     m_host = host;
     m_port = port;
     m_connectCallback = callback;
-    
+    std::stringstream url;
+    url << "ws://" << host << ":" << port;
+    connectToServer(url.str());
+}
+
+void FinalverseClient::connectToServer(const std::string& url)
+{
     m_running = true;
-    m_networkThread = std::make_unique<std::thread>(&FinalverseClient::networkThread, this);
+    m_client.clear_access_channels(websocketpp::log::alevel::all);
+    m_client.init_asio();
+
+    m_client.set_open_handler([this](websocketpp::connection_hdl hdl) {
+        m_connected = true;
+        m_connection = hdl;
+        if (m_connectCallback) m_connectCallback(true);
+        subscribeToServices({});
+    });
+
+    m_client.set_fail_handler([this](websocketpp::connection_hdl) {
+        m_connected = false;
+        if (m_connectCallback) m_connectCallback(false);
+    });
+
+    m_client.set_close_handler([this](websocketpp::connection_hdl) {
+        m_connected = false;
+        if (m_disconnectCallback) m_disconnectCallback();
+    });
+
+    m_client.set_message_handler([this](websocketpp::connection_hdl, WSClient::message_ptr msg) {
+        Message message;
+        message.data.assign(msg->get_payload().begin(), msg->get_payload().end());
+
+        if (msg->get_opcode() == websocketpp::frame::opcode::binary) {
+            MessageHeader header;
+            if (MessageSerializer::deserialize(message.data.data(), message.data.size(), header)) {
+                message.type = header.type;
+                message.data.erase(message.data.begin(), message.data.begin() + sizeof(MessageHeader));
+            } else {
+                message.type = MessageType::Unknown;
+            }
+        } else {
+            message.type = MessageType::ServerInfo;
+        }
+
+        std::lock_guard<std::mutex> lock(m_receiveMutex);
+        m_receiveQueue.push(std::move(message));
+    });
+
+    websocketpp::lib::error_code ec;
+    auto con = m_client.get_connection(url, ec);
+    if (ec) {
+        if (m_connectCallback) m_connectCallback(false);
+        return;
+    }
+
+    m_connection = con->get_handle();
+    m_client.connect(con);
+    m_wsThread.reset(new websocketpp::lib::thread([this]() { m_client.run(); }));
+}
+
+void FinalverseClient::subscribeToServices(const std::vector<std::string>& services)
+{
+    if (!m_connected) return;
+    std::string payload = "subscribe"; // placeholder
+    websocketpp::lib::error_code ec;
+    m_client.send(m_connection, payload, websocketpp::frame::opcode::text, ec);
 }
 
 void FinalverseClient::disconnect()
 {
     m_running = false;
-    
-    if (m_networkThread && m_networkThread->joinable()) {
-        m_networkThread->join();
-    }
-    
-    if (m_socket >= 0) {
-        close(m_socket);
-        m_socket = -1;
-    }
-    
-    m_connected = false;
-}
 
-void FinalverseClient::networkThread()
-{
-    // Create socket
-    m_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (m_socket < 0) {
-        if (m_connectCallback) m_connectCallback(false);
-        return;
+    websocketpp::lib::error_code ec;
+    m_client.close(m_connection, websocketpp::close::status::going_away, "", ec);
+    if (m_wsThread && m_wsThread->joinable()) {
+        m_wsThread->join();
     }
-    
-    // Set non-blocking
-    int flags = fcntl(m_socket, F_GETFL, 0);
-    fcntl(m_socket, F_SETFL, flags | O_NONBLOCK);
-    
-    // Connect to server
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(m_port);
-    serverAddr.sin_addr.s_addr = inet_addr(m_host.c_str());
-    
-    if (::connect(m_socket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        if (errno != EINPROGRESS) {
-            if (m_connectCallback) m_connectCallback(false);
-            return;
-        }
-    }
-    
-    // Wait for connection
-    fd_set writefds;
-    FD_ZERO(&writefds);
-    FD_SET(m_socket, &writefds);
-    
-    struct timeval timeout;
-    timeout.tv_sec = 5;
-    timeout.tv_usec = 0;
-    
-    if (select(m_socket + 1, nullptr, &writefds, nullptr, &timeout) > 0) {
-        m_connected = true;
-        if (m_connectCallback) m_connectCallback(true);
-        
-        // Main network loop
-        while (m_running) {
-            // Send queued messages
-            {
-                std::lock_guard<std::mutex> lock(m_sendMutex);
-                while (!m_sendQueue.empty()) {
-                    const auto& msg = m_sendQueue.front();
-                    // Send message (implement protocol)
-                    m_sendQueue.pop();
-                }
-            }
-            
-            // Receive messages
-            uint8_t buffer[4096];
-            ssize_t received = recv(m_socket, buffer, sizeof(buffer), 0);
-            if (received > 0) {
-                // Parse and queue received messages
-                // (Implement based on your protocol)
-            }
-            
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-    } else {
-        if (m_connectCallback) m_connectCallback(false);
-    }
-    
+
     m_connected = false;
-    if (m_disconnectCallback) m_disconnectCallback();
 }
 
 void FinalverseClient::sendPlayerPosition(const float3& position, const float4& rotation)
 {
-    // Create position update message
-    struct PositionMessage {
-        MessageType type = MessageType::PositionUpdate;
-        float x, y, z;
-        float rx, ry, rz, rw;
-    } msg;
-    
-    msg.x = position.x;
-    msg.y = position.y;
-    msg.z = position.z;
-    msg.rx = rotation.x;
-    msg.ry = rotation.y;
-    msg.rz = rotation.z;
-    msg.rw = rotation.w;
-    
-    sendMessage(MessageType::PositionUpdate, &msg, sizeof(msg));
+    PositionUpdate update{};
+    update.position = position;
+    update.rotation = rotation;
+    update.velocity = float3{0.f, 0.f, 0.f};
+    update.timestamp = 0.0;
+
+    auto payload = MessageSerializer::serialize(update);
+    sendMessage(MessageType::PositionUpdate, payload.data(), payload.size());
 }
 
 void FinalverseClient::sendMessage(MessageType type, const void* data, size_t size)
 {
-    Message msg;
-    msg.type = type;
-    msg.data.assign((uint8_t*)data, (uint8_t*)data + size);
-    
-    std::lock_guard<std::mutex> lock(m_sendMutex);
-    m_sendQueue.push(msg);
+    if (!m_connected) return;
+
+    MessageHeader header{};
+    header.type = type;
+    header.length = static_cast<uint32_t>(size);
+    header.timestamp = 0;
+
+    auto headerBuf = MessageSerializer::serialize(header);
+    std::vector<uint8_t> buffer;
+    buffer.insert(buffer.end(), headerBuf.begin(), headerBuf.end());
+    buffer.insert(buffer.end(), (const uint8_t*)data, (const uint8_t*)data + size);
+
+    websocketpp::lib::error_code ec;
+    m_client.send(m_connection, buffer.data(), buffer.size(), websocketpp::frame::opcode::binary, ec);
 }
 
 void FinalverseClient::update()
@@ -167,20 +157,30 @@ void FinalverseClient::update()
 void FinalverseClient::processMessage(const Message& msg)
 {
     switch (msg.type) {
-        case MessageType::WorldUpdate:
-            // Parse world update and forward to WorldManager
-            if (m_worldManager) {
-                // m_worldManager->processWorldUpdate(msg.data);
+        case MessageType::WorldUpdate: {
+            WorldUpdate update;
+            if (MessageSerializer::deserialize(msg.data.data(), msg.data.size(), update)) {
+                if (m_worldManager) {
+                    // m_worldManager->processWorldUpdate(update);
+                }
             }
             break;
-            
+        }
         case MessageType::EntityUpdate:
-            // Parse entity update
             if (m_worldManager) {
                 handleEntityUpdate(msg);
             }
             break;
-            
+        case MessageType::ServerInfo: {
+            if (m_dataVisualizer) {
+                ServiceMetrics metrics{};
+                std::stringstream ss(std::string(msg.data.begin(), msg.data.end()));
+                ss >> metrics.cpuUsage >> metrics.memoryUsage >> metrics.activeConnections;
+                float health = m_dataVisualizer->computeHealthScore(metrics);
+                (void)health;
+            }
+            break;
+        }
         default:
             break;
     }
