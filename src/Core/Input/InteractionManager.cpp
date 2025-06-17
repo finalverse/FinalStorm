@@ -1,6 +1,6 @@
 #include "InteractionManager.h"
 #include "../Math/Math.h"
-#include "../../SceneGraph/SceneNode.h"
+#include "../../Scene/SceneNode.h"
 #include "../Math/Math.h"
 
 namespace FinalStorm {

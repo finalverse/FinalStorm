@@ -19,7 +19,7 @@ High Level Architecture
           v
 +---------------------------------------------------------+
 | Scene Graph & World Management                          |
-|  - SceneNode hierarchy (Shared/SceneGraph)              |
+|  - SceneNode hierarchy (Shared/Scene)              |
 |  - WorldManager, SceneManager, Entity types             |
 |  - ServiceEntity for representing backend services      |
 |  - ServiceVisualizations for rich 3D visuals            |
@@ -60,7 +60,7 @@ The audio engine in `Shared/Core/Audio` provides loading and playback of sound c
 A platform independent interface is defined in `Shared/Renderer`. The current implementation uses Metal and resides in `MetalRenderer`. It supports macOS and iOS with a `RendererFactory` prepared for future Vulkan or DirectX 12 backends.
 
 ### Scene Graph
-Classes under `Shared/SceneGraph` form a hierarchical scene graph. `SceneNode` is the base, while `ServiceNode` and `ServiceVisualization` specialise it for representing running services. Nodes can update each frame and issue draw calls through the renderer.
+Classes under `Shared/Scene` form a hierarchical scene graph. `SceneNode` is the base, while `ServiceNode` and `ServiceVisualization` specialise it for representing running services. Nodes can update each frame and issue draw calls through the renderer.
 
 ### UI
 `Shared/UI3D` contains components such as `HolographicDisplay`, `Panel` and `InteractiveOrb`. These provide simple 3D user interface elements used by service visualisations.
@@ -92,7 +92,7 @@ FinalStorm/
   CMakeLists.txt
   src/
     Core/            -> from Shared/Core/
-    Scene/           -> from Shared/SceneGraph/
+    Scene/           -> from Shared/Scene/
     Rendering/       -> from Shared/Renderer/ plus MetalRenderer/*
     UI/              -> from Shared/UI3D/
     Platform/macOS/  -> from macOS/
@@ -104,3 +104,198 @@ FinalStorm/
 
 A top level `FinalStormApp.cpp` would construct the renderer and drive the
 platform layer. Common Metal shaders could live in `shaders/FinalStorm.metal`.
+
+One of states of project structure is:
+```
+FinalStorm/
+├── CMakeLists.txt
+├── README.md
+├── LICENSE
+├── .gitignore
+├── setup_xcode_project.sh
+├── generate_xcodeproj.sh
+├── verify_structure.sh
+│
+├── docs/                           # Documentation
+│   ├── ARCHITECTURE.md
+│   ├── API.md
+│   ├── BUILD.md
+│   └── CONTRIBUTING.md
+│
+├── include/FinalStorm/             # Public headers (for library usage)
+│   ├── Core/
+│   │   ├── Math.h                 # Public math utilities
+│   │   └── Transform.h            # Public transform interface
+│   ├── Networking/
+│   │   └── FinalverseClient.h     # Public client interface
+│   └── FinalStorm.h               # Main public header
+│
+├── src/                            # Implementation files
+│   ├── main.cpp                   # Main entry point (creates FinalStormApp)
+│   ├── FinalStormApp.cpp          # Application class implementation
+│   ├── FinalStormApp.h            # Application class header
+│   │
+│   ├── Core/                      # Core systems
+│   │   ├── Audio/
+│   │   │   ├── AudioEngine.cpp
+│   │   │   ├── AudioEngine.h
+│   │   │   ├── SpatialAudioSystem.cpp
+│   │   │   └── SpatialAudioSystem.h
+│   │   │
+│   │   ├── Input/
+│   │   │   ├── InteractionManager.cpp
+│   │   │   ├── InteractionManager.h
+│   │   │   ├── InputTypes.h
+│   │   │   └── GestureRecognizer.h
+│   │   │
+│   │   ├── Math/
+│   │   │   ├── Math.cpp
+│   │   │   ├── Math.h            # Internal math header
+│   │   │   ├── Transform.cpp
+│   │   │   └── Transform.h       # Internal transform header
+│   │   │
+│   │   ├── Networking/
+│   │   │   ├── FinalverseClient.cpp
+│   │   │   ├── FinalverseClient.h  # Internal client header
+│   │   │   ├── MessageProtocol.cpp
+│   │   │   ├── MessageProtocol.h
+│   │   │   ├── ServiceDiscovery.cpp
+│   │   │   └── ServiceDiscovery.h
+│   │   │
+│   │   └── World/
+│   │       ├── Entity.cpp
+│   │       ├── Entity.h
+│   │       ├── WorldManager.cpp
+│   │       └── WorldManager.h
+│   │
+│   ├── Scene/                     # Scene management
+│   │   ├── SceneManager.cpp       # Main scene manager
+│   │   ├── SceneManager.h
+│   │   ├── SceneNode.cpp          # Base scene node
+│   │   ├── SceneNode.h
+│   │   ├── Scene.cpp              # Scene implementation
+│   │   ├── Scene.h
+│   │   ├── CameraController.cpp
+│   │   └── CameraController.h
+│   │
+│   ├── Services/                  # Service visualizations
+│   │   ├── ServiceEntity.cpp      # Base service entity
+│   │   ├── ServiceEntity.h
+│   │   ├── ServiceFactory.cpp     # Factory for creating services
+│   │   ├── ServiceFactory.h
+│   │   ├── ServiceMetrics.h       # Metrics structures
+│   │   │
+│   │   ├── Visualizations/        # Specific service visualizations
+│   │   │   ├── APIGatewayViz.cpp
+│   │   │   ├── APIGatewayViz.h
+│   │   │   ├── AIServiceViz.cpp
+│   │   │   ├── AIServiceViz.h
+│   │   │   ├── AudioServiceViz.cpp
+│   │   │   ├── AudioServiceViz.h
+│   │   │   ├── WorldEngineViz.cpp
+│   │   │   ├── WorldEngineViz.h
+│   │   │   ├── DatabaseViz.cpp
+│   │   │   ├── DatabaseViz.h
+│   │   │   ├── CommunityViz.cpp
+│   │   │   └── CommunityViz.h
+│   │   │
+│   │   └── Components/            # Service components
+│   │       ├── ParticleEmitter.cpp
+│   │       ├── ParticleEmitter.h
+│   │       ├── ConnectionBeam.cpp
+│   │       └── ConnectionBeam.h
+│   │
+│   ├── Environment/               # Environment systems
+│   │   ├── EnvironmentController.cpp
+│   │   ├── EnvironmentController.h
+│   │   ├── Skybox.cpp
+│   │   ├── Skybox.h
+│   │   ├── GridMesh.cpp
+│   │   └── GridMesh.h
+│   │
+│   ├── UI/                        # User interface
+│   │   ├── UI3DPanel.cpp          # Base 3D panel
+│   │   ├── UI3DPanel.h
+│   │   ├── HolographicDisplay.cpp
+│   │   ├── HolographicDisplay.h
+│   │   ├── InteractiveOrb.cpp
+│   │   ├── InteractiveOrb.h
+│   │   ├── ServiceDiscoveryUI.cpp
+│   │   ├── ServiceDiscoveryUI.h
+│   │   ├── MetricsDisplay.cpp
+│   │   └── MetricsDisplay.h
+│   │
+│   ├── Rendering/                 # Rendering system
+│   │   ├── Renderer.h             # Abstract renderer interface
+│   │   ├── RenderContext.h
+│   │   ├── Material.h
+│   │   ├── Mesh.h
+│   │   │
+│   │   └── Metal/                 # Metal implementation
+│   │       ├── MetalRenderer.h
+│   │       ├── MetalRenderer.mm
+│   │       ├── MetalRenderContext.h
+│   │       ├── MetalRenderContext.mm
+│   │       ├── MetalMesh.h
+│   │       ├── MetalMesh.mm
+│   │       ├── MetalTexture.h
+│   │       ├── MetalTexture.mm
+│   │       └── MetalShaderTypes.h
+│   │
+│   ├── Visualization/             # Data visualization
+│   │   ├── DataVisualizer.cpp
+│   │   ├── DataVisualizer.h
+│   │   ├── GraphRenderer.cpp
+│   │   ├── GraphRenderer.h
+│   │   ├── WaveformVisualizer.cpp
+│   │   └── WaveformVisualizer.h
+│   │
+│   └── Platform/                  # Platform-specific code
+│       ├── iOS/
+│       │   ├── AppDelegate.h
+│       │   ├── AppDelegate.mm
+│       │   ├── GameViewController.h
+│       │   ├── GameViewController.mm
+│       │   ├── ARMode.h
+│       │   ├── ARMode.mm
+│       │   ├── Info.plist
+│       │   └── main.mm
+│       │
+│       └── macOS/
+│           ├── AppDelegate.h
+│           ├── AppDelegate.mm
+│           ├── GameViewController.h
+│           ├── GameViewController.mm
+│           ├── Info.plist
+│           ├── FinalStorm.entitlements
+│           └── main.mm
+│
+├── shaders/                       # Shader files
+│   ├── Common.metal              # Common shader functions
+│   ├── Service.metal             # Service visualization shaders
+│   ├── Environment.metal         # Environment shaders
+│   ├── UI.metal                  # UI shaders
+│   ├── Particles.metal           # Particle shaders
+│   └── PostProcess.metal         # Post-processing shaders
+│
+├── assets/                        # Asset files
+│   ├── textures/
+│   │   ├── skybox/
+│   │   ├── particles/
+│   │   └── ui/
+│   ├── models/
+│   └── audio/
+│
+├── Resources/                     # Platform resources
+│   └── Assets.xcassets
+│       ├── AppIcon.appiconset/
+│       └── ...
+│
+├── tests/                         # Unit tests
+│   ├── Core/
+│   ├── Scene/
+│   └── Services/
+│
+└── external/                      # Third-party dependencies
+    └── glm/                      # If not using system GLM
+```

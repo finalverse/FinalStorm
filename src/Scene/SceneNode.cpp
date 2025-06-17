@@ -1,4 +1,4 @@
-#include "SceneNode.h"
+#include "Scene/SceneNode.h"
 #include "../Renderer/Renderer.h"
 #include <algorithm>
 

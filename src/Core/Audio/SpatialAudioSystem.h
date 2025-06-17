@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AudioEngine.h"
-#include "../../SceneGraph/ServiceNode.h"
+#include "../../Scene/ServiceNode.h"
 #include "../Environment/EnvironmentController.h"
 #include <unordered_map>
 #include <memory>

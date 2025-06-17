@@ -1,7 +1,7 @@
 // ServiceVisualizations.h - Visual representations for different service types
 #pragma once
 
-#include "SceneNode.h"
+#include "Scene/SceneNode.h"
 #include "../Core/Math/Math.h"
 #include <random>
 

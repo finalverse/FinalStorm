@@ -16,6 +16,49 @@ find_library(APPKIT_FRAMEWORK AppKit)
 find_library(UIKIT_FRAMEWORK UIKit)
 find_library(COREGRAPHICS_FRAMEWORK CoreGraphics)
 
+# Scene sources
+set(SCENE_SOURCES
+    src/Scene/Scene.cpp
+    src/Scene/SceneNode.cpp
+    src/Scene/SceneManager.cpp
+    src/Scene/CameraController.cpp
+)
+
+# Service sources
+set(SERVICE_SOURCES
+    src/Services/ServiceEntity.cpp
+    src/Services/ServiceFactory.cpp
+    src/Services/ServiceMetricsUpdater.cpp
+    src/Services/MetricsMonitor.cpp
+    src/Services/ServiceLayoutUtils.cpp
+)
+
+# Service visualization sources
+set(SERVICE_VIZ_SOURCES
+    src/Services/Visualizations/APIGatewayViz.cpp
+    src/Services/Visualizations/AIServiceViz.cpp
+    src/Services/Visualizations/AudioServiceViz.cpp
+    src/Services/Visualizations/WorldEngineViz.cpp
+    src/Services/Visualizations/DatabaseViz.cpp
+    src/Services/Visualizations/BlockchainViz.cpp
+    src/Services/Visualizations/CommunityViz.cpp
+)
+
+# Service component sources
+set(SERVICE_COMPONENT_SOURCES
+    src/Services/Components/ParticleEmitter.cpp
+    src/Services/Components/ConnectionBeam.cpp
+)
+
+# UI sources
+set(UI_SOURCES
+    src/UI/UI3DPanel.cpp
+    src/UI/HolographicDisplay.cpp
+    src/UI/InteractiveOrb.cpp
+    src/UI/ServiceDiscoveryUI.cpp
+    src/UI/MetricsDisplay.cpp
+)
+
 # Source files
 set(SHARED_SOURCES
     src/Core/Math/Math.cpp

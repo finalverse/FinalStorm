@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../SceneGraph/SceneNode.h"
+#include "../Scene/SceneNode.h"
 #include <functional>
 
 namespace FinalStorm {
