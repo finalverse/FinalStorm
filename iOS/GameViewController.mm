@@ -7,12 +7,14 @@
 
 #import "GameViewController.h"
 #include "../Shared/Core/Networking/FinalverseClient.h"
+#include "../Shared/Core/Input/InteractionManager.h"
 
 @implementation GameViewController
 {
     MTKView *_view;
     MetalRenderer *_renderer;
     std::unique_ptr<FinalStorm::FinalverseClient> _client;
+    std::shared_ptr<FinalStorm::InteractionManager> _interactionManager;
     CADisplayLink *_displayLink;
     NSTimeInterval _lastTime;
 }
@@ -38,6 +40,10 @@
 
     _renderer = [[MetalRenderer alloc] initWithMetalKitView:_view];
     [_renderer mtkView:_view drawableSizeWillChange:_view.bounds.size];
+
+    _interactionManager = std::make_shared<FinalStorm::InteractionManager>();
+    _interactionManager->setCamera(_renderer.camera);
+    _interactionManager->setSceneRoot(_renderer.sceneRoot);
     
     _view.delegate = _renderer;
     
@@ -103,17 +109,28 @@
 {
     CGPoint location = [gesture locationInView:self.view];
     FSPoint point = CGPointMake(location.x, location.y);
+    FinalStorm::float2 viewport = simd_make_float2(_view.bounds.size.width, _view.bounds.size.height);
+    FinalStorm::float2 pos = simd_make_float2(point.x, point.y);
 
     switch (gesture.state) {
         case UIGestureRecognizerStateBegan:
             [_renderer handleMouseDown:point];
+            if (_interactionManager) {
+                _interactionManager->handleTouchBegan(pos, viewport);
+            }
             break;
         case UIGestureRecognizerStateChanged:
             [_renderer handleMouseDragged:point];
+            if (_interactionManager) {
+                _interactionManager->handleTouchMoved(pos, viewport);
+            }
             break;
         case UIGestureRecognizerStateEnded:
         case UIGestureRecognizerStateCancelled:
             [_renderer handleMouseUp:point];
+            if (_interactionManager) {
+                _interactionManager->handleTouchEnded(pos, viewport);
+            }
             break;
         default:
             break;
@@ -125,9 +142,12 @@
 - (void)handlePinch:(UIPinchGestureRecognizer *)gesture
 {
     // Handle zoom
+    if (_interactionManager) {
+        _interactionManager->handlePinch(gesture.scale);
+    }
     if (gesture.state == UIGestureRecognizerStateChanged) {
         float scale = gesture.scale;
-        // Implement zoom logic
+        (void)scale;
         gesture.scale = 1.0;
     }
 }
