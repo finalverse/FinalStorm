@@ -147,12 +147,12 @@ add_executable(FinalStorm-iOS MACOSX_BUNDLE
 
 # Add Resources to iOS bundle
 set_source_files_properties(
-    ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets.xcassets
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/Resources/Assets.xcassets
     PROPERTIES MACOSX_PACKAGE_LOCATION Resources
 )
 
 target_sources(FinalStorm-iOS PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets.xcassets
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/Resources/Assets.xcassets
 )
 
 set_target_properties(FinalStorm-iOS PROPERTIES
@@ -311,4 +311,4 @@ source_group("Source Files\\Platform\\macOS" FILES ${MACOS_SOURCES})
 source_group("Source Files\\Platform\\iOS" FILES ${IOS_SOURCES})
 source_group("Source Files\\Renderer\\Metal" FILES ${METAL_RENDERER_SOURCES})
 source_group("Shaders" FILES ${METAL_SHADERS})
-source_group("Resources" FILES ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets.xcassets)
+source_group("Resources" FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/Resources/Assets.xcassets)
