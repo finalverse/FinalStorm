@@ -20,8 +20,8 @@ find_library(COREGRAPHICS_FRAMEWORK CoreGraphics)
 set(SHARED_SOURCES
     src/main.cpp
     src/FinalStormApp.cpp
-    src/FirstScene.cpp
-    src/SceneLoader.cpp
+    src/Scene/Scenes/FirstScene.cpp
+    src/Scene/SceneLoader.cpp
     
     # Core
     src/Core/Math/Math.cpp
