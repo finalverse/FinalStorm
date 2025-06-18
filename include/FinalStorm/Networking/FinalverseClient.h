@@ -15,7 +15,7 @@
 #include <mutex>
 #include "../Math/Math.h"
 #include "MessageProtocol.h"
-#include "../Visualization/DataVisualizer.h"
+#include "Visualization/DataVisualizer.h"
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 

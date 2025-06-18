@@ -6,7 +6,7 @@
 //
 
 #include "Core/Networking/FinalverseClient.h"
-#include "Core/World/WorldManager.h"
+#include "World/WorldManager.h"
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
 #include <websocketpp/common/thread.hpp>

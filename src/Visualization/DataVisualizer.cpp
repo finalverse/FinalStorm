@@ -1,4 +1,4 @@
-#include "Core/Visualization/DataVisualizer.h"
+#include "Visualization/DataVisualizer.h"
 
 namespace FinalStorm {
 

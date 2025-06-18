@@ -2,7 +2,7 @@
 
 #include "Core/Audio/AudioEngine.h"
 #include "Services/ServiceNode.h"
-#include "Core/Environment/EnvironmentController.h"
+#include "Environment/EnvironmentController.h"
 #include <unordered_map>
 #include <memory>
 

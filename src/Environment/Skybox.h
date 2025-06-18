@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/World/Entity.h"
+#include "World/Entity.h"
 
 namespace FinalStorm {
 

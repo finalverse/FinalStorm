@@ -1,4 +1,4 @@
-#include "Core/Environment/EnvironmentController.h"
+#include "Environment/EnvironmentController.h"
 
 namespace FinalStorm {
 

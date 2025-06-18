@@ -1,6 +1,6 @@
 // CameraController.cpp - Camera control implementation
 #include "Scene/CameraController.h"
-#include "Core/World/Entity.h"
+#include "World/Entity.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
