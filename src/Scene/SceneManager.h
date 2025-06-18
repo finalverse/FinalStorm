@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/World/WorldManager.h"
+#include "World/WorldManager.h"
 #include "Services/ServiceEntity.h"
 #include <map>
 #include <memory>

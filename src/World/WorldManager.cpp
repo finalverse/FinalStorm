@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <algorithm>
-#include "Core/World/WorldManager.h"
+#include "World/WorldManager.h"
 
 namespace FinalStorm {
 

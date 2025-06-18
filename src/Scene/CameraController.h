@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Core/World/Entity.h"
+#include "World/Entity.h"
 #include <glm/glm.hpp>
 #include <vector>
 

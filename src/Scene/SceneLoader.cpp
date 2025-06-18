@@ -1,7 +1,7 @@
 // SceneLoader.cpp - Implementation
 
 #include "Scene/SceneLoader.h"
-#include "Core/World/WorldManager.h"
+#include "World/WorldManager.h"
 #include "Rendering/Metal/MetalRenderer.h"
 #include "Core/Networking/FinalverseClient.h"
 #include <iostream>

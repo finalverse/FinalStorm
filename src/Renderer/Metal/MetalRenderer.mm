@@ -7,12 +7,12 @@
 
 #import "MetalRenderer.h"
 #import "MetalShaderTypes.h"
-#include "Core/World/Entity.h"
+#include "World/Entity.h"
 #include "Scene/SceneNode.h"
 #include "Services/Visualizations/WebServerViz.h"
 #include "Services/Visualizations/DatabaseViz.h"
-#include "Core/Environment/EnvironmentController.h"
-#include "Core/Visualization/DataVisualizer.h"
+#include "Environment/EnvironmentController.h"
+#include "Visualization/DataVisualizer.h"
 #include "Core/Audio/SpatialAudioSystem.h"
 #include <vector>
 #include <unordered_set>

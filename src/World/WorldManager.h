@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Core/World/Entity.h"
+#include "World/Entity.h"
 #include "Core/Math/Math.h"
 #include <vector>
 #include <unordered_map>

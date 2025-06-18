@@ -25,14 +25,14 @@ set(SHARED_SOURCES
     
     # Core
     src/Core/Math/Math.cpp
-    src/Core/World/Entity.cpp
-    src/Core/World/WorldManager.cpp
+    src/World/Entity.cpp
+    src/World/WorldManager.cpp
     src/Core/Networking/FinalverseClient.cpp
     src/Core/Networking/MessageProtocol.cpp
     src/Core/Audio/AudioEngine.cpp
     src/Core/Audio/SpatialAudioSystem.cpp
     src/Core/Input/InteractionManager.cpp
-    src/Core/Visualization/DataVisualizer.cpp
+    src/Visualization/DataVisualizer.cpp
     
     # Scene
     src/Scene/SceneNode.cpp
@@ -61,8 +61,7 @@ set(SHARED_SOURCES
     src/UI/UI3DPanel.cpp
     
     # Environment
-    # EnvironmentController.cpp is in Core/Environment
-    src/Core/Environment/EnvironmentController.cpp
+    src/Environment/EnvironmentController.cpp
 )
 
 set(METAL_RENDERER_SOURCES
