@@ -2,7 +2,7 @@
 #pragma once
 
 #include "Scene/Scene.h"
-#include "FirstScene.h"
+#include "Scene/Scenes/FirstScene.h"
 #include <memory>
 #include <map>
 #include <string>
