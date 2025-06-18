@@ -95,6 +95,28 @@ set(IOS_SOURCES
     src/Platform/iOS/ARMode.mm
 )
 
+# Placeholder sets for additional platforms
+set(LINUX_SOURCES)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    list(APPEND LINUX_SOURCES
+        # src/Platform/Linux/main.cpp
+    )
+endif()
+
+set(ANDROID_SOURCES)
+if(ANDROID)
+    list(APPEND ANDROID_SOURCES
+        # src/Platform/Android/main.cpp
+    )
+endif()
+
+set(WINDOWS_SOURCES)
+if(WIN32 AND NOT APPLE)
+    list(APPEND WINDOWS_SOURCES
+        # src/Platform/Windows/main.cpp
+    )
+endif()
+
 # Set the shader files as resources
 set_source_files_properties(${METAL_SHADERS} PROPERTIES
     MACOSX_PACKAGE_LOCATION Resources/Shaders
@@ -309,6 +331,9 @@ add_custom_command(
 source_group("Source Files" FILES ${SHARED_SOURCES})
 source_group("Source Files\\Platform\\macOS" FILES ${MACOS_SOURCES})
 source_group("Source Files\\Platform\\iOS" FILES ${IOS_SOURCES})
+source_group("Source Files\\Platform\\Linux" FILES ${LINUX_SOURCES})
+source_group("Source Files\\Platform\\Android" FILES ${ANDROID_SOURCES})
+source_group("Source Files\\Platform\\Windows" FILES ${WINDOWS_SOURCES})
 source_group("Source Files\\Renderer\\Metal" FILES ${METAL_RENDERER_SOURCES})
 source_group("Shaders" FILES ${METAL_SHADERS})
 source_group("Resources" FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/Resources/Assets.xcassets)
