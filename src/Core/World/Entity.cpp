@@ -7,7 +7,7 @@
 //  Created by Wenyan Qin on 2025-06-16.
 //
 
-#include "Entity.h"
+#include "Core/World/Entity.h"
 
 namespace FinalStorm {
 

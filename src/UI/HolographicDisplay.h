@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Scene/SceneNode.h"
-#include "UI3DPanel.h"
+#include "Scene/SceneNode.h"
+#include "UI/UI3DPanel.h"
 #include <memory>
 
 namespace FinalStorm {

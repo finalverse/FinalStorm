@@ -5,8 +5,8 @@
 //  Created by Wenyan Qin on 2025-06-15.
 //
 
-#include "Math.h"
-#include "Transform.h"
+#include "Core/Math/Math.h"
+#include "Core/Math/Transform.h"
 
 namespace FinalStorm {
 

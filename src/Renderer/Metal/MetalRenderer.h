@@ -10,9 +10,9 @@ typedef NSPoint FSPoint;
 typedef CGPoint FSPoint;
 #endif
 
-#include "../../Core/Math/Math.h"
-#include "../../Core/World/WorldManager.h"
-#include "../../Scene/SceneNode.h"
+#include "Core/Math/Math.h"
+#include "Core/World/WorldManager.h"
+#include "Scene/SceneNode.h"
 #include <memory>
 
 @interface MetalRenderer : NSObject<MTKViewDelegate>

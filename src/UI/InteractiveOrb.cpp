@@ -1,5 +1,5 @@
-#include "InteractiveOrb.h"
-#include "../Renderer/Renderer.h"
+#include "UI/InteractiveOrb.h"
+#include "Renderer/Renderer.h"
 
 namespace FinalStorm {
 

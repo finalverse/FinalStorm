@@ -2,7 +2,7 @@
 #pragma once
 
 #include "Scene/SceneNode.h"
-#include "../Core/Math/Math.h"
+#include "Core/Math/Math.h"
 #include <random>
 
 namespace FinalStorm {

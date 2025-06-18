@@ -8,7 +8,7 @@
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
-#import "../../Rendering/Metal/MetalRenderer.h"
+#import "Renderer/Metal/MetalRenderer.h"
 
 @interface GameViewController : NSViewController
 

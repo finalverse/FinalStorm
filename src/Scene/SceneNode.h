@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Core/Math/Math.h"
-#include "../Core/Math/Transform.h"
-#include "../Core/World/Entity.h"
+#include "Core/Math/Math.h"
+#include "Core/Math/Transform.h"
+#include "Core/World/Entity.h"
 #include <memory>
 #include <vector>
 
