@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "../Math/Math.h"
-#include "../Math/Transform.h"  // Add this include
+#include "Core/Math/Math.h"
+#include "Core/Math/Transform.h"  // Add this include
 #include <string>
 #include <memory>
 #include <vector>

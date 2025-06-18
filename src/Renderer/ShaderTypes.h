@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../Core/Math/Math.h"
+#include "Core/Math/Math.h"
 
 // Shared shader data structures between C++ and Metal/Vulkan/DX12
 

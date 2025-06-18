@@ -1,7 +1,7 @@
-#include "InteractionManager.h"
-#include "../Math/Math.h"
-#include "../../Scene/SceneNode.h"
-#include "../Math/Math.h"
+#include "Core/Input/InteractionManager.h"
+#include "Core/Math/Math.h"
+#include "Scene/SceneNode.h"
+#include "Core/Math/Math.h"
 
 namespace FinalStorm {
 

@@ -7,7 +7,7 @@
 
 #include <stdio.h>
 #include <cstring>
-#include "MessageProtocol.h"
+#include "Core/Networking/MessageProtocol.h"
 
 namespace FinalStorm {
 

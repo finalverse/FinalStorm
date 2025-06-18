@@ -8,7 +8,7 @@
 #import <UIKit/UIKit.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
-#import "../../Rendering/Metal/MetalRenderer.h"
+#import "Renderer/Metal/MetalRenderer.h"
 
 // Our iOS view controller
 @interface GameViewController : UIViewController

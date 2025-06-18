@@ -2,7 +2,7 @@
 
 #include <functional>
 #include <string>
-#include "../Core/Math/Math.h"
+#include "Core/Math/Math.h"
 
 namespace FinalStorm {
 

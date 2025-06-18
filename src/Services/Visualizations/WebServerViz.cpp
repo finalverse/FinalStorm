@@ -1,5 +1,5 @@
-#include "WebServerViz.h"
-#include "../../Scene/SceneNode.h"
+#include "Services/Visualizations/WebServerViz.h"
+#include "Scene/SceneNode.h"
 
 namespace FinalStorm {
 
