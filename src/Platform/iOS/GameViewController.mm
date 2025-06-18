@@ -6,8 +6,8 @@
 //
 
 #import "GameViewController.h"
-#include "../../Core/Networking/FinalverseClient.h"
-#include "../../Core/Input/InteractionManager.h"
+#include "Core/Networking/FinalverseClient.h"
+#include "Core/Input/InteractionManager.h"
 #import "ARMode.h"
 
 @implementation GameViewController

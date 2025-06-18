@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
-#include "../Math/Math.h"
+#include "Core/Math/Math.h"
 
 namespace FinalStorm {
 

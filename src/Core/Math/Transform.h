@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Math.h"
+#include "Core/Math/Math.h"
 
 namespace FinalStorm {
 

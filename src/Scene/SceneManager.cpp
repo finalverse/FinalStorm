@@ -1,5 +1,5 @@
-#include "SceneManager.h"
-#include "../Math/Math.h"
+#include "Scene/SceneManager.h"
+#include "Core/Math/Math.h"
 
 namespace FinalStorm {
 
