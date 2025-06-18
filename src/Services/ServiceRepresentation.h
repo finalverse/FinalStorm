@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../Scene/ServiceNode.h"
+#include "ServiceNode.h"
 #include <string>
 
 namespace FinalStorm {

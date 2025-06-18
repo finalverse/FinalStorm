@@ -1,25 +1,12 @@
-// Particles.metal - Particle system shaders
+// Particles.metal - Particle system shaders for FinalStorm
 
 #include <metal_stdlib>
+#include <simd/simd.h>
 #include "Common.metal"
 
 using namespace metal;
 
-struct ParticleVertexIn {
-    float3 position [[attribute(0)]];
-    float size [[attribute(1)]];
-    float4 color [[attribute(2)]];
-    float life [[attribute(3)]];
-    float rotation [[attribute(4)]];
-};
-
-struct ParticleVertexOut {
-    float4 position [[position]];
-    float pointSize [[point_size]];
-    float4 color;
-    float rotation;
-};
-
+// Particle vertex shader
 vertex ParticleVertexOut particle_vertex(ParticleVertexIn in [[stage_in]],
                                         constant CameraData& camera [[buffer(0)]]) {
     ParticleVertexOut out;
@@ -41,6 +28,7 @@ vertex ParticleVertexOut particle_vertex(ParticleVertexIn in [[stage_in]],
     return out;
 }
 
+// Particle fragment shader
 fragment float4 particle_fragment(ParticleVertexOut in [[stage_in]],
                                  float2 pointCoord [[point_coord]],
                                  texture2d<float> particleTexture [[texture(0)]],
@@ -58,8 +46,32 @@ fragment float4 particle_fragment(ParticleVertexOut in [[stage_in]],
     
     float4 texColor = particleTexture.sample(particleSampler, rotated);
     
-    // Glow effect
-    float3 color = in.color.rgb * (1.0 + (1.0 - length(coord)) * 0.5);
+    // Soft particle edges
+    float r = length(coord);
+    float alpha = 1.0 - smoothstep(0.5, 1.0, r);
     
-    return float4(color, in.color.a * texColor.a);
+    // Glow effect
+    float glow = exp(-r * 3.0);
+    float3 color = in.color.rgb * (1.0 + glow);
+    
+    return float4(color, alpha * in.color.a * texColor.a);
+}
+
+// Simple particle without texture
+fragment float4 particle_simple_fragment(ParticleVertexOut in [[stage_in]],
+                                        float2 pointCoord [[point_coord]]) {
+    
+    float2 coord = pointCoord * 2.0 - 1.0;
+    float r = length(coord);
+    
+    if (r > 1.0) discard_fragment();
+    
+    // Soft edges
+    float alpha = 1.0 - smoothstep(0.5, 1.0, r);
+    
+    // Glow
+    float glow = exp(-r * 3.0);
+    float3 color = in.color.rgb * (1.0 + glow * 0.5);
+    
+    return float4(color, alpha * in.color.a);
 }

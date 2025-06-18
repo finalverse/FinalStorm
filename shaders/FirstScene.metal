@@ -1,4 +1,4 @@
-// FirstScene.metal - Shaders for The Nexus first scene
+// FirstScene.metal - Shaders for FinalStorm's First Scene
 
 #include <metal_stdlib>
 #include <simd/simd.h>
@@ -6,8 +6,8 @@
 
 using namespace metal;
 
-// Nexus-specific structures
-struct NexusUniforms {
+// FirstScene-specific uniforms
+struct FirstSceneUniforms {
     float4x4 modelMatrix;
     float4x4 viewMatrix;
     float4x4 projectionMatrix;
@@ -27,11 +27,11 @@ struct NexusUniforms {
     float energyLevel;
 };
 
-// Central Nexus crystal shader
-fragment float4 nexus_crystal_fragment(VertexOut in [[stage_in]],
-                                      constant NexusUniforms& uniforms [[buffer(0)]],
-                                      texture2d<float> noiseTexture [[texture(0)]],
-                                      sampler noiseSampler [[sampler(0)]]) {
+// Central crystal shader for FinalStorm First Scene
+fragment float4 firstscene_crystal_fragment(VertexOut in [[stage_in]],
+                                          constant FirstSceneUniforms& uniforms [[buffer(0)]],
+                                          texture2d<float> noiseTexture [[texture(0)]],
+                                          sampler noiseSampler [[sampler(0)]]) {
     
     float3 normal = normalize(in.worldNormal);
     float3 viewDir = normalize(uniforms.cameraPosition - in.worldPos);
@@ -41,11 +41,11 @@ fragment float4 nexus_crystal_fragment(VertexOut in [[stage_in]],
     float3 reflectDir = reflect(-viewDir, normal);
     
     // Sample noise for internal structure
-    float noise = noiseTexture.sample(noiseSampler, in.texCoord + uniforms.time * 0.05).r;
+    float noiseVal = noiseTexture.sample(noiseSampler, in.texCoord + uniforms.time * 0.05).r;
     
     // Base crystal color with internal light
     float3 crystalColor = uniforms.baseColor.rgb;
-    crystalColor += uniforms.glowColor.rgb * noise * uniforms.glowIntensity;
+    crystalColor += uniforms.glowColor.rgb * noiseVal * uniforms.glowIntensity;
     
     // Fresnel effect for rim lighting
     float fresnel = pow(1.0 - saturate(dot(normal, viewDir)), 2.0);
@@ -69,8 +69,8 @@ fragment float4 nexus_crystal_fragment(VertexOut in [[stage_in]],
 }
 
 // Energy ring shader
-fragment float4 energy_ring_fragment(VertexOut in [[stage_in]],
-                                   constant NexusUniforms& uniforms [[buffer(0)]]) {
+fragment float4 firstscene_energy_ring_fragment(VertexOut in [[stage_in]],
+                                               constant FirstSceneUniforms& uniforms [[buffer(0)]]) {
     
     float3 normal = normalize(in.worldNormal);
     float3 viewDir = normalize(uniforms.cameraPosition - in.worldPos);
@@ -95,9 +95,9 @@ fragment float4 energy_ring_fragment(VertexOut in [[stage_in]],
 }
 
 // Service orb shader
-fragment float4 service_orb_fragment(VertexOut in [[stage_in]],
-                                   constant NexusUniforms& uniforms [[buffer(0)]],
-                                   constant int& serviceType [[buffer(1)]]) {
+fragment float4 firstscene_service_orb_fragment(VertexOut in [[stage_in]],
+                                               constant FirstSceneUniforms& uniforms [[buffer(0)]],
+                                               constant int& serviceType [[buffer(1)]]) {
     
     float3 normal = normalize(in.worldNormal);
     float3 viewDir = normalize(uniforms.cameraPosition - in.worldPos);
@@ -140,7 +140,7 @@ fragment float4 service_orb_fragment(VertexOut in [[stage_in]],
     color += uniforms.glowColor.rgb * fresnel;
     
     // Activity pulse
-    float pulse = sin(uniforms.pulsePhase + serviceType * 0.5) * 0.5 + 0.5;
+    float pulse = sin(uniforms.pulsePhase + float(serviceType) * 0.5) * 0.5 + 0.5;
     color += uniforms.glowColor.rgb * pulse * uniforms.energyLevel * 0.3;
     
     float alpha = uniforms.baseColor.a * (0.8 + fresnel * 0.2);
@@ -148,18 +148,18 @@ fragment float4 service_orb_fragment(VertexOut in [[stage_in]],
     return float4(color, alpha);
 }
 
-// Nebula background shader
-vertex VertexOut nebula_vertex(VertexIn in [[stage_in]],
-                              constant NexusUniforms& uniforms [[buffer(0)]],
-                              uint instanceID [[instance_id]]) {
+// Environment background shader
+vertex VertexOut firstscene_environment_vertex(VertexIn in [[stage_in]],
+                                              constant FirstSceneUniforms& uniforms [[buffer(0)]],
+                                              uint instanceID [[instance_id]]) {
     VertexOut out;
     
-    // Scale and offset for different nebula layers
-    float layerScale = 1.0 + instanceID * 0.2;
+    // Scale and offset for different layers
+    float layerScale = 1.0 + float(instanceID) * 0.2;
     float3 layerOffset = float3(
-        sin(instanceID * 1.234) * 10.0,
-        cos(instanceID * 2.345) * 5.0,
-        instanceID * -5.0
+        sin(float(instanceID) * 1.234) * 10.0,
+        cos(float(instanceID) * 2.345) * 5.0,
+        float(instanceID) * -5.0
     );
     
     float3 pos = in.position * layerScale + layerOffset;
@@ -169,27 +169,34 @@ vertex VertexOut nebula_vertex(VertexIn in [[stage_in]],
     out.position = uniforms.projectionMatrix * uniforms.viewMatrix * worldPos;
     out.worldNormal = in.normal;
     out.texCoord = in.texCoord;
+    out.fogFactor = 0.0; // No fog for environment
+    
+    // Initialize other fields
+    out.tangentViewPos = float3(0.0);
+    out.tangentLightPos = float3(0.0);
+    out.tangentFragPos = float3(0.0);
+    out.shadowCoord = float4(0.0);
     
     return out;
 }
 
-fragment float4 nebula_fragment(VertexOut in [[stage_in]],
-                               constant NexusUniforms& uniforms [[buffer(0)]],
-                               texture2d<float> noiseTexture [[texture(0)]],
-                               sampler noiseSampler [[sampler(0)]]) {
+fragment float4 firstscene_environment_fragment(VertexOut in [[stage_in]],
+                                               constant FirstSceneUniforms& uniforms [[buffer(0)]],
+                                               texture2d<float> noiseTexture [[texture(0)]],
+                                               sampler noiseSampler [[sampler(0)]]) {
     
-    // Multi-octave noise for nebula clouds
+    // Multi-octave noise for clouds
     float2 uv = in.texCoord * 2.0;
     float noise1 = noiseTexture.sample(noiseSampler, uv + uniforms.time * 0.01).r;
     float noise2 = noiseTexture.sample(noiseSampler, uv * 2.5 - uniforms.time * 0.02).r;
     float noise3 = noiseTexture.sample(noiseSampler, uv * 5.0 + uniforms.time * 0.015).r;
     
-    float nebula = noise1 * 0.5 + noise2 * 0.3 + noise3 * 0.2;
-    nebula = smoothstep(0.2, 0.8, nebula);
+    float cloudDensity = noise1 * 0.5 + noise2 * 0.3 + noise3 * 0.2;
+    cloudDensity = smoothstep(0.2, 0.8, cloudDensity);
     
     // Color gradient
-    float3 color = mix(uniforms.primaryColor, uniforms.secondaryColor, nebula);
-    color *= nebula;
+    float3 color = mix(uniforms.primaryColor, uniforms.secondaryColor, cloudDensity);
+    color *= cloudDensity;
     
     // Distance fade
     float distance = length(in.worldPos - uniforms.cameraPosition);
@@ -199,14 +206,14 @@ fragment float4 nebula_fragment(VertexOut in [[stage_in]],
     float pulse = sin(uniforms.time * 0.5 + distance * 0.01) * 0.1 + 0.9;
     color *= pulse;
     
-    float alpha = nebula * fade * 0.3;
+    float alpha = cloudDensity * fade * 0.3;
     
     return float4(color, alpha);
 }
 
 // Connection beam shader
-fragment float4 connection_beam_fragment(VertexOut in [[stage_in]],
-                                       constant NexusUniforms& uniforms [[buffer(0)]]) {
+fragment float4 firstscene_connection_beam_fragment(VertexOut in [[stage_in]],
+                                                   constant FirstSceneUniforms& uniforms [[buffer(0)]]) {
     
     // Energy flow along beam
     float flow = fract(in.texCoord.y - uniforms.time * 0.5);
@@ -232,10 +239,10 @@ fragment float4 connection_beam_fragment(VertexOut in [[stage_in]],
 }
 
 // Holographic UI shader
-fragment float4 holographic_ui_fragment(VertexOut in [[stage_in]],
-                                       constant NexusUniforms& uniforms [[buffer(0)]],
-                                       texture2d<float> uiTexture [[texture(0)]],
-                                       sampler uiSampler [[sampler(0)]]) {
+fragment float4 firstscene_holographic_ui_fragment(VertexOut in [[stage_in]],
+                                                   constant FirstSceneUniforms& uniforms [[buffer(0)]],
+                                                   texture2d<float> uiTexture [[texture(0)]],
+                                                   sampler uiSampler [[sampler(0)]]) {
     
     float4 texColor = uiTexture.sample(uiSampler, in.texCoord);
     
@@ -271,74 +278,41 @@ fragment float4 holographic_ui_fragment(VertexOut in [[stage_in]],
     return float4(color, alpha);
 }
 
-// Welcome sequence fade shader
-kernel void welcome_fade(texture2d<float, access::read> inTexture [[texture(0)]],
-                        texture2d<float, access::write> outTexture [[texture(1)]],
-                        constant float& fadeAlpha [[buffer(0)]],
-                        uint2 gid [[thread_position_in_grid]]) {
-    
-    float4 color = inTexture.read(gid);
-    
-    // Vignette effect
-    float2 uv = float2(gid) / float2(inTexture.get_width(), inTexture.get_height());
-    float2 center = uv - 0.5;
-    float vignette = 1.0 - length(center) * 1.4;
-    vignette = smoothstep(0.0, 1.0, vignette);
-    
-    // Apply fade
-    color.rgb *= (1.0 - fadeAlpha);
-    color.rgb *= vignette;
-    
-    outTexture.write(color, gid);
-}
-
-// Particle shader for environment
-struct EnvironmentParticle {
-    float3 position [[attribute(0)]];
-    float size [[attribute(1)]];
-    float4 color [[attribute(2)]];
-    float life [[attribute(3)]];
-    float type [[attribute(4)]]; // 0: star, 1: dust, 2: sparkle
-};
-
-vertex ParticleVertexOut environment_particle_vertex(EnvironmentParticle in [[stage_in]],
-                                                   constant CameraData& camera [[buffer(0)]]) {
+// Particle shaders for environment effects
+vertex ParticleVertexOut firstscene_particle_vertex(ParticleVertexIn in [[stage_in]],
+                                                   constant FirstSceneUniforms& camera [[buffer(0)]]) {
     ParticleVertexOut out;
     
     float4 viewPos = camera.viewMatrix * float4(in.position, 1.0);
-    out.position = camera.projMatrix * viewPos;
+    out.position = camera.projectionMatrix * viewPos;
     
-    // Size based on type and distance
+    // Point size with distance attenuation
     float distance = length(viewPos.xyz);
-    float baseSize = in.size;
-    
-    switch (int(in.type)) {
-        case 0: // Star - constant size
-            out.pointSize = baseSize * 2.0;
-            break;
-        case 1: // Dust - larger, distance-based
-            out.pointSize = baseSize * 1000.0 / distance;
-            break;
-        case 2: // Sparkle - animated size
-            out.pointSize = baseSize * (1.0 + sin(camera.time * 10.0 + in.position.x) * 0.5) * 100.0 / distance;
-            break;
-        default:
-            out.pointSize = baseSize * 100.0 / distance;
-    }
-    
+    out.pointSize = in.size * 500.0 / distance;
     out.pointSize = clamp(out.pointSize, 1.0, 128.0);
+    
+    // Fade based on life
     out.color = in.color;
-    out.rotation = 0.0;
+    out.color.a *= smoothstep(0.0, 0.1, in.life);
+    
+    out.rotation = in.rotation;
     
     return out;
 }
 
-fragment float4 environment_particle_fragment(ParticleVertexOut in [[stage_in]],
-                                            float2 pointCoord [[point_coord]]) {
+fragment float4 firstscene_particle_fragment(ParticleVertexOut in [[stage_in]],
+                                           float2 pointCoord [[point_coord]]) {
     
+    // Rotate point coordinates
     float2 coord = pointCoord * 2.0 - 1.0;
-    float r = length(coord);
+    float cosR = cos(in.rotation);
+    float sinR = sin(in.rotation);
+    float2 rotated = float2(
+        coord.x * cosR - coord.y * sinR,
+        coord.x * sinR + coord.y * cosR
+    );
     
+    float r = length(coord);
     if (r > 1.0) discard_fragment();
     
     // Soft particle edges

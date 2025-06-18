@@ -1,0 +1,10 @@
+./shaders/FirstScene.metal:40:12: warning: unused variable 'refractDir' [-Wunused-variable]
+    float3 refractDir = refract(-viewDir, normal, 0.9);
+           ^
+./shaders/FirstScene.metal:41:12: warning: unused variable 'reflectDir' [-Wunused-variable]
+    float3 reflectDir = reflect(-viewDir, normal);
+           ^
+./shaders/FirstScene.metal:310:12: warning: unused variable 'rotated' [-Wunused-variable]
+    float2 rotated = float2(
+           ^
+3 warnings generated.

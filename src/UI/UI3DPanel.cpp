@@ -1,69 +1,94 @@
-#include "UI/UI3DPanel.h"
-#include "Rendering/Metal/MetalRenderer.h"
+#include "UI3DPanel.h"
+#include "Core/ResourceManager.h"
+#include "Core/Transform.h"
+#include "Graphics/Material.h"
+#include "Graphics/Mesh.h"
+#include "Graphics/Renderer.h"
 
 namespace FinalStorm {
 
-UI3DPanel::UI3DPanel(float width, float height)
-    : Entity("UI3DPanel"),
-      m_width(width),
-      m_height(height),
-      m_backgroundColor(0.1f, 0.1f, 0.2f, 0.8f),
-      m_borderColor(0.0f, 0.8f, 1.0f, 1.0f) {
+UI3DPanel::UI3DPanel() {
+    m_transform = std::make_unique<Transform>();
 }
 
-void UI3DPanel::setText(const std::string& text) {
-    m_text = text;
-    // TODO: Update text mesh
-}
+UI3DPanel::~UI3DPanel() = default;
 
-void UI3DPanel::setBackgroundColor(const glm::vec4& color) {
-    m_backgroundColor = color;
-}
-
-void UI3DPanel::setBorderColor(const glm::vec4& color) {
-    m_borderColor = color;
-}
-
-void UI3DPanel::setAlpha(float alpha) {
-    m_backgroundColor.a = alpha;
-    m_borderColor.a = alpha;
-}
-
-bool UI3DPanel::isVisible() const {
-    return m_isVisible;
-}
-
-void UI3DPanel::setVisible(bool visible) {
-    m_isVisible = visible;
-}
-
-void UI3DPanel::update(float deltaTime) {
-    Entity::update(deltaTime);
+void UI3DPanel::init(float width, float height) {
+    m_width = width;
+    m_height = height;
     
-    if (m_isHovered) {
-        transform.scale = glm::vec3(m_width * 1.05f, m_height * 1.05f, 1.0f);
-    } else {
-        transform.scale = glm::vec3(m_width, m_height, 1.0f);
+    // Create panel mesh
+    auto& resourceManager = ResourceManager::getInstance();
+    m_mesh = resourceManager.getMesh("quad");
+    
+    if (!m_mesh) {
+        // Create a simple quad mesh if not found
+        std::vector<Vertex> vertices = {
+            {{-width/2, -height/2, 0}, {0, 0, 1}, {0, 0}, {1, 0, 0}, {0, 1, 0}},
+            {{ width/2, -height/2, 0}, {0, 0, 1}, {1, 0}, {1, 0, 0}, {0, 1, 0}},
+            {{ width/2,  height/2, 0}, {0, 0, 1}, {1, 1}, {1, 0, 0}, {0, 1, 0}},
+            {{-width/2,  height/2, 0}, {0, 0, 1}, {0, 1}, {1, 0, 0}, {0, 1, 0}}
+        };
+        
+        std::vector<uint32_t> indices = {
+            0, 1, 2,
+            0, 2, 3
+        };
+        
+        m_mesh = std::make_shared<Mesh>();
+        m_mesh->create(vertices, indices);
+        resourceManager.addMesh("quad", m_mesh);
+    }
+    
+    // Create material
+    m_material = std::make_shared<Material>();
+    m_material->setShader(resourceManager.getShader("ui"));
+    m_material->setAlbedo(vec3_one());
+    m_material->setOpacity(0.9f);
+}
+
+void UI3DPanel::setPanelColor(const vec4& color) {
+    if (m_material) {
+        m_material->setAlbedo(make_vec3(color.x, color.y, color.z));
+        m_material->setOpacity(color.w);
     }
 }
 
-void UI3DPanel::render(MetalRenderer* renderer) {
-    if (!m_isVisible) return;
-    Entity::render(renderer);
+void UI3DPanel::setOpacity(float opacity) {
+    if (m_material) {
+        m_material->setOpacity(opacity);
+    }
 }
 
-bool UI3DPanel::hitTest(const glm::vec3& rayOrigin, const glm::vec3& rayDir) {
-    glm::vec3 min = transform.position - transform.scale * 0.5f;
-    glm::vec3 max = transform.position + transform.scale * 0.5f;
+bool UI3DPanel::getVisible() const {
+    return m_visible;
+}
+
+void UI3DPanel::setVisible(bool visible) {
+    m_visible = visible;
+}
+
+void UI3DPanel::update(float deltaTime) {
+    if (!m_visible) return;
     
-    glm::vec3 invDir = 1.0f / rayDir;
-    glm::vec3 t1 = (min - rayOrigin) * invDir;
-    glm::vec3 t2 = (max - rayOrigin) * invDir;
+    // Update any animations
+    if (m_material) {
+        // Example: subtle pulse effect
+        vec3 pos = m_transform->getPosition();
+        float time = pos.x * 0.1f;
+        float pulse = sin(time) * 0.05f + 0.95f;
+        m_material->setEmission(pulse * 0.1f);
+    }
+}
+
+void UI3DPanel::draw(Renderer* renderer) {
+    if (!m_visible || !m_mesh || !m_material) return;
     
-    float tMin = glm::max(glm::max(glm::min(t1.x, t2.x), glm::min(t1.y, t2.y)), glm::min(t1.z, t2.z));
-    float tMax = glm::min(glm::min(glm::max(t1.x, t2.x), glm::max(t1.y, t2.y)), glm::max(t1.z, t2.z));
+    // UI panels typically render with transparency
+    renderer->setBlendMode(BlendMode::Alpha);
     
-    return tMax >= 0 && tMin <= tMax;
+    // Draw the panel mesh with material
+    renderer->drawMesh(m_mesh.get(), m_material.get(), m_transform->getModelMatrix());
 }
 
 } // namespace FinalStorm

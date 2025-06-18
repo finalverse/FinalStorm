@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ServiceRepresentation.h"
+#include "Services/ServiceRepresentation.h"
 #include <string>
 
 namespace FinalStorm {

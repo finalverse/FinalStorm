@@ -1,70 +1,92 @@
-//
-//  Shaders.metal
-//  FinalStorm macOS
-//
-//  Created by Wenyan Qin on 2025-06-15.
-//
+// Core.metal - Core rendering shaders for FinalStorm
 
 #include <metal_stdlib>
-#include <simd/simd.h>
+#include "Common.metal"
 
 using namespace metal;
 
-// Use regular float3 instead of packed_float3 for vertex attributes
-typedef struct {
-    float3 position [[attribute(0)]];
-    float3 normal [[attribute(1)]];
-    float2 texCoord [[attribute(2)]];
-} VertexIn;
-
-typedef struct {
-    float4x4 viewProjectionMatrix;
-    float4x4 modelMatrix;
-    float3x3 normalMatrix;
-    float4 color;
-} Uniforms;
-
-// Buffer indices
-constant int BufferIndexMeshPositions = 0;
-constant int BufferIndexUniforms = 1;
-
-struct ColorInOut {
-    float4 position [[position]];
-    float3 worldPosition;
-    float3 worldNormal;
-    float2 texCoord;
-};
-
-vertex ColorInOut vertexShader(VertexIn in [[stage_in]],
-                               constant Uniforms& uniforms [[buffer(BufferIndexUniforms)]]) {
-    ColorInOut out;
+// Basic vertex shader
+vertex VertexOut basic_vertex(VertexIn in [[stage_in]],
+                             constant ModelData& model [[buffer(0)]],
+                             constant CameraData& camera [[buffer(1)]]) {
+    VertexOut out;
     
-    float4 position = float4(in.position, 1.0);
-    out.worldPosition = (uniforms.modelMatrix * position).xyz;
-    out.position = uniforms.viewProjectionMatrix * float4(out.worldPosition, 1.0);
-    out.worldNormal = uniforms.normalMatrix * in.normal;
+    float4 worldPos = model.modelMatrix * float4(in.position, 1.0);
+    out.worldPos = worldPos.xyz;
+    out.position = camera.viewProjMatrix * worldPos;
+    out.worldNormal = normalize((model.normalMatrix * float4(in.normal, 0.0)).xyz);
     out.texCoord = in.texCoord;
+    
+    // Calculate fog
+    float distance = length(camera.position - out.worldPos);
+    out.fogFactor = 1.0 - exp(-0.01 * distance);
+    
+    // Initialize unused fields
+    out.tangentViewPos = float3(0.0);
+    out.tangentLightPos = float3(0.0);
+    out.tangentFragPos = float3(0.0);
+    out.shadowCoord = float4(0.0);
     
     return out;
 }
 
-fragment float4 fragmentShader(ColorInOut in [[stage_in]],
-                               constant Uniforms& uniforms [[buffer(BufferIndexUniforms)]]) {
-    float3 normal = normalize(in.worldNormal);
+// Basic fragment shader with lighting
+fragment float4 basic_fragment(VertexOut in [[stage_in]],
+                              constant ModelData& model [[buffer(0)]],
+                              constant CameraData& camera [[buffer(1)]],
+                              constant Light* lights [[buffer(2)]],
+                              constant int& numLights [[buffer(3)]]) {
     
-    // Simple directional light
-    float3 lightDirection = normalize(float3(1, -1, -1));
-    float3 lightColor = float3(1.0, 1.0, 1.0);
+    float3 normal = normalize(in.worldNormal);
+    float3 viewDir = normalize(camera.position - in.worldPos);
+    
+    // Base color
+    float3 albedo = model.color.rgb;
+    float alpha = model.color.a * model.opacity;
+    
+    // Lighting accumulation
+    float3 color = float3(0.0);
+    
+    for (int i = 0; i < numLights; i++) {
+        Light light = lights[i];
+        float3 lightDir;
+        float attenuation = 1.0;
+        
+        if (light.type == 0) { // Directional
+            lightDir = normalize(-light.position);
+        } else { // Point
+            float3 lightVec = light.position - in.worldPos;
+            float distance = length(lightVec);
+            lightDir = normalize(lightVec);
+            attenuation = saturate(1.0 - (distance / light.range));
+        }
+        
+        // Simple Phong lighting
+        float NdotL = max(dot(normal, lightDir), 0.0);
+        float3 diffuse = albedo * NdotL;
+        
+        float3 reflectDir = reflect(-lightDir, normal);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+        float3 specular = float3(0.5) * spec * (1.0 - model.roughness);
+        
+        color += (diffuse + specular) * light.color * light.intensity * attenuation;
+    }
     
     // Ambient
-    float3 ambient = 0.2 * uniforms.color.rgb;
+    color += albedo * 0.1;
     
-    // Diffuse
-    float diff = max(dot(normal, -lightDirection), 0.0);
-    float3 diffuse = diff * lightColor * uniforms.color.rgb;
+    // Emission
+    color += albedo * model.emission;
     
-    // Result
-    float3 result = ambient + diffuse;
+    // Fog
+    float3 fogColor = float3(0.02, 0.02, 0.05);
+    color = mix(color, fogColor, in.fogFactor * 0.5);
     
-    return float4(result, uniforms.color.a);
+    return float4(color, alpha);
+}
+
+// Unlit shader for UI and effects
+fragment float4 unlit_fragment(VertexOut in [[stage_in]],
+                              constant ModelData& model [[buffer(0)]]) {
+    return model.color;
 }

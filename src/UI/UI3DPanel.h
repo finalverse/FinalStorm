@@ -1,32 +1,43 @@
 #pragma once
-#include "../Core/World/Entity.h"
-#include <string>
-#include <functional>
+
+#include <memory>
+#include "Core/MathTypes.h"
 
 namespace FinalStorm {
 
-class UI3DPanel : public Entity {
+class Mesh;
+class Material;
+class Renderer;
+class Transform;
+
+class UI3DPanel {
 public:
-    UI3DPanel(float width, float height);
+    UI3DPanel();
+    ~UI3DPanel();
     
-    void setText(const std::string& text);
-    void setBackgroundColor(const glm::vec4& color);
-    void setBorderColor(const glm::vec4& color);
+    // Initialization
+    void init(float width, float height);
     
-    void update(float deltaTime) override;
-    void render(class MetalRenderer* renderer) override;
+    // Properties
+    void setPanelColor(const vec4& color);
+    void setOpacity(float opacity);
+    bool getVisible() const;
+    void setVisible(bool visible);
     
-    // Interaction
-    bool hitTest(const glm::vec3& rayOrigin, const glm::vec3& rayDir);
-    std::function<void()> onPress;
-    std::function<void()> onHover;
+    // Transform access
+    Transform* getTransform() const { return m_transform.get(); }
+    
+    // Update and render
+    void update(float deltaTime);
+    void draw(Renderer* renderer);
     
 private:
-    float m_width, m_height;
-    std::string m_text;
-    glm::vec4 m_backgroundColor;
-    glm::vec4 m_borderColor;
-    bool m_isHovered = false;
+    std::shared_ptr<Mesh> m_mesh;
+    std::shared_ptr<Material> m_material;
+    std::unique_ptr<Transform> m_transform;
+    bool m_visible = true;
+    float m_width = 1.0f;
+    float m_height = 1.0f;
 };
 
 } // namespace FinalStorm

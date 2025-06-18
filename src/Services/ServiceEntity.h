@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../World/Entity.h"
+#include "../Core/World/Entity.h"
 #include <string>
 #include <memory>
 

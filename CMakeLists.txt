@@ -74,7 +74,6 @@ set(METAL_SHADERS
     shaders/Common.metal
     shaders/Core.metal
     shaders/Environment.metal
-    shaders/FinalStorm.metal
     shaders/FirstScene.metal
     shaders/Particles.metal
     shaders/PostProcess.metal
@@ -197,6 +196,69 @@ target_link_libraries(FinalStorm-iOS
 add_custom_target(CompileShaders ALL
     COMMENT "Compiling Metal shaders..."
 )
+
+# for Metal shader compilation
+#   - Usage in CMakeLists.txt:
+#   - compile_metal_shaders(FinalStorm "${CMAKE_SOURCE_DIR}/shaders" "${CMAKE_BINARY_DIR}/shaders")
+#
+# Metal shader compilation function
+function(compile_metal_shaders target_name shader_dir output_dir)
+    if(APPLE)
+        file(GLOB METAL_SHADERS "${shader_dir}/*.metal")
+        
+        set(COMPILED_SHADERS)
+        
+        foreach(SHADER ${METAL_SHADERS})
+            get_filename_component(SHADER_NAME ${SHADER} NAME_WE)
+            set(OUTPUT_AIR "${output_dir}/${SHADER_NAME}.air")
+            
+            # Determine SDK based on platform
+            if(IOS)
+                set(SDK_FLAG "-sdk" "iphoneos")
+            else()
+                set(SDK_FLAG "-sdk" "macosx")
+            endif()
+            
+            # Compile to AIR
+            add_custom_command(
+                OUTPUT ${OUTPUT_AIR}
+                COMMAND xcrun ${SDK_FLAG} metal -c ${SHADER} -o ${OUTPUT_AIR}
+                DEPENDS ${SHADER}
+                COMMENT "Compiling Metal shader ${SHADER_NAME}"
+                VERBATIM
+            )
+            
+            list(APPEND COMPILED_SHADERS ${OUTPUT_AIR})
+        endforeach()
+        
+        # Create unified metallib
+        set(METALLIB_OUTPUT "${output_dir}/FinalStorm.metallib")
+        add_custom_command(
+            OUTPUT ${METALLIB_OUTPUT}
+            COMMAND xcrun ${SDK_FLAG} metallib ${COMPILED_SHADERS} -o ${METALLIB_OUTPUT}
+            DEPENDS ${COMPILED_SHADERS}
+            COMMENT "Creating unified Metal library"
+            VERBATIM
+        )
+        
+        # Add metallib to target
+        add_custom_target(${target_name}_shaders ALL DEPENDS ${METALLIB_OUTPUT})
+        add_dependencies(${target_name} ${target_name}_shaders)
+        
+        # Copy metallib to Resources
+        if(IOS)
+            set(RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.app")
+        else()
+            set(RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/${target_name}.app/Contents/Resources")
+        endif()
+        
+        add_custom_command(
+            TARGET ${target_name}_shaders POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${RESOURCES_DIR}/Shaders
+            COMMAND ${CMAKE_COMMAND} -E copy ${METALLIB_OUTPUT} ${RESOURCES_DIR}/Shaders/
+        )
+    endif()
+endfunction()
 
 # macOS shader compilation
 add_custom_command(
