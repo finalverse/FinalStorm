@@ -1,6 +1,6 @@
 // FinalStormApp.cpp
 #include "FinalStormApp.h"
-#include "Network/NetworkClient.h"              // You need to add this
+#include "Core/Networking/NetworkClient.h"
 #include "Core/Input/InputManager.h"            // The new low-level input manager
 #include "Core/Input/InteractionManager.h"      // Existing high-level interaction
 #include "Renderer/MetalRenderer.h"             // Use existing renderer

@@ -1,4 +1,4 @@
-// Network/NetworkClient.h
+// Core/Networking/NetworkClient.h
 #pragma once
 
 #include <string>
@@ -8,6 +8,7 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <unordered_map>
 
 namespace FinalStorm {
 
