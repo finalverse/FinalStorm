@@ -45,13 +45,13 @@ set(SHARED_SOURCES
     src/Services/ServiceFactory.cpp
     src/Services/ServiceNode.cpp
     src/Services/ServiceVisualizations.cpp
-    src/Services/Visualizations/DatabaseViz.cpp
-    src/Services/Visualizations/WebServerViz.cpp
-    src/Services/Visualizations/AIServiceViz.cpp
-    src/Services/Visualizations/AudioServiceViz.cpp
-    src/Services/Visualizations/WorldEngineViz.cpp
-    src/Services/Visualizations/CommunityViz.cpp
-    src/Services/Visualizations/APIGatewayViz.cpp
+    src/Visual/DatabaseViz.cpp
+    src/Visual/WebServerViz.cpp
+    src/Visual/AIServiceViz.cpp
+    src/Visual/AudioServiceViz.cpp
+    src/Visual/WorldEngineViz.cpp
+    src/Visual/CommunityViz.cpp
+    src/Visual/APIGatewayViz.cpp
     src/Services/Components/ParticleEmitter.cpp
     
     # UI

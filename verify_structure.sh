@@ -23,7 +23,7 @@ files=(
     "src/Platform/macOS/main.mm"
     "src/Platform/macOS/GameViewController.h"
     "src/Platform/macOS/GameViewController.mm"
-    "src/Renderer/Metal/MetalRenderer.h"
+    "src/Renderer/Metal/MetalRenderer.hpp"
     "src/Renderer/Metal/MetalRenderer.mm"
     "src/Renderer/Metal/MetalShaderTypes.h"
     "shaders/Core.metal"

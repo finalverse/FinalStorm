@@ -1,4 +1,4 @@
-#include "Services/Visualizations/CommunityViz.h"
+#include "Visual/CommunityViz.h"
 
 namespace FinalStorm {
 

@@ -1,4 +1,4 @@
-#include "Services/Visualizations/APIGatewayViz.h"
+#include "Visual/APIGatewayViz.h"
 
 namespace FinalStorm {
 

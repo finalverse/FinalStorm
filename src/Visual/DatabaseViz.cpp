@@ -1,4 +1,4 @@
-#include "Services/Visualizations/DatabaseViz.h"
+#include "Visual/DatabaseViz.h"
 #include "Scene/SceneNode.h"
 
 namespace FinalStorm {

@@ -172,7 +172,7 @@ FinalStorm/
 │   │   ├── ServiceFactory.h
 │   │   ├── ServiceMetrics.h       # Metrics structures
 │   │   │
-│   │   ├── Visualizations/        # Specific service visualizations
+│   │   ├── Visual/                # Specific service visualizations
 │   │   │   ├── APIGatewayViz.cpp
 │   │   │   ├── APIGatewayViz.h
 │   │   │   ├── AIServiceViz.cpp
