@@ -13,7 +13,7 @@ High Level Architecture
           v
 +------------------+           +---------------------------+
 | MetalRenderer    |<--------->| Renderer interface        |
-| (platform code)  |           | src/Renderer/Renderer.h   |
+| (platform code)  |           | src/Rendering/Renderer.h   |
 +------------------+           +---------------------------+
           |
           v
@@ -50,7 +50,7 @@ Networking code lives in `src/Core/Networking`. `FinalverseClient` manages the w
 The audio engine in `src/Core/Audio` provides loading and playback of sound clips with positional audio. `SpatialAudioSystem` ties service nodes to 3D audio sources so each running service can emit sound in the world.
 
 ### Rendering
-A platform independent interface is defined in `src/Renderer`. The current implementation uses Metal and resides in `MetalRenderer`. It supports macOS and iOS with a `RendererFactory` prepared for future Vulkan or DirectX 12 backends.
+A platform independent interface is defined in `src/Rendering`. The current implementation uses Metal and resides in `MetalRenderer`. It supports macOS and iOS with a `RendererFactory` prepared for future Vulkan or DirectX 12 backends.
 
 ### Scene Graph
 Classes under `src/Scene` form a hierarchical scene graph. `SceneNode` is the base, while `ServiceNode` and `ServiceVisualization` specialise it for representing running services. Nodes can update each frame and issue draw calls through the renderer.

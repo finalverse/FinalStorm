@@ -1,5 +1,5 @@
 #include "UI/UI3DPanel.h"
-#include "Renderer/Renderer.h"
+#include "Rendering/Renderer.h"
 
 namespace FinalStorm {
 

@@ -1,5 +1,5 @@
 #include "UI/HolographicDisplay.h"
-#include "Renderer/Renderer.h"
+#include "Rendering/Renderer.h"
 
 namespace FinalStorm {
 

@@ -2,9 +2,9 @@
 #include "UI3DPanel.h"
 #include "Core/ResourceManager.h"      // You need to add this
 #include "Core/Math/Transform.h"       // Existing
-#include "Renderer/Material.h"         // You need to add this
-#include "Renderer/Mesh.h"            // You need to add this
-#include "Renderer/MetalRenderer.h"    // Use existing MetalRenderer instead of generic Renderer
+#include "Rendering/Material.h"         // You need to add this
+#include "Rendering/Mesh.h"            // You need to add this
+#include "Rendering/MetalRenderer.h"    // Use existing MetalRenderer instead of generic Renderer
 
 namespace FinalStorm {
 

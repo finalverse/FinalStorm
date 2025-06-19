@@ -1,4 +1,4 @@
-// Renderer/Material.h
+// Rendering/Material.h
 #pragma once
 
 #include "Core/MathTypes.h"

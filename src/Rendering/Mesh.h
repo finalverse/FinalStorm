@@ -1,4 +1,4 @@
-// Renderer/Mesh.h
+// Rendering/Mesh.h
 #pragma once
 
 #include "Core/MathTypes.h"

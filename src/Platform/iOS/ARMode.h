@@ -1,6 +1,6 @@
 #import <Foundation/Foundation.h>
 #import <ARKit/ARKit.h>
-#import "Renderer/Metal/MetalRenderer.h"
+#import "Rendering/Metal/MetalRenderer.h"
 #include "Services/ServiceRepresentation.h"
 #include <memory>
 

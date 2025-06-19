@@ -1,4 +1,4 @@
-// Renderer/Camera.h
+// Rendering/Camera.h
 #pragma once
 
 #include "Core/MathTypes.h"

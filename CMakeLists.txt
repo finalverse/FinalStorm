@@ -66,7 +66,7 @@ set(SHARED_SOURCES
 )
 
 set(METAL_RENDERER_SOURCES
-    src/Renderer/Metal/MetalRenderer.mm
+    src/Rendering/Metal/MetalRenderer.mm
 )
 
 # Metal shaders
@@ -334,6 +334,6 @@ source_group("Source Files\\Platform\\iOS" FILES ${IOS_SOURCES})
 source_group("Source Files\\Platform\\Linux" FILES ${LINUX_SOURCES})
 source_group("Source Files\\Platform\\Android" FILES ${ANDROID_SOURCES})
 source_group("Source Files\\Platform\\Windows" FILES ${WINDOWS_SOURCES})
-source_group("Source Files\\Renderer\\Metal" FILES ${METAL_RENDERER_SOURCES})
+source_group("Source Files\\Rendering\\Metal" FILES ${METAL_RENDERER_SOURCES})
 source_group("Shaders" FILES ${METAL_SHADERS})
 source_group("Resources" FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/Resources/Assets.xcassets)
