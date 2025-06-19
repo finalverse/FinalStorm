@@ -54,6 +54,7 @@ A platform independent interface is defined in `Shared/Renderer`. The current im
 
 ### Scene Graph
 Classes under `Shared/Scene` form a hierarchical scene graph. `SceneNode` is the base, while `ServiceNode` and `ServiceVisualization` specialise it for representing running services. Nodes can update each frame and issue draw calls through the renderer.
+Individual visualization classes reside under `src/Services/Visual`.
 
 ### UI
 `Shared/UI3D` contains components such as `HolographicDisplay`, `Panel` and `InteractiveOrb`. These provide simple 3D user interface elements used by service visualisations.
