@@ -1,65 +1,104 @@
-#include "Scene/SceneManager.h"
-#include "Core/Math/Math.h"
+//
+// SceneManager.cpp - Scene Management Implementation
+// FinalStorm 3D Client for Finalverse
+//
+
+#include "SceneManager.h"
+#include "Scene.h"
+#include "../Rendering/Metal/MetalRenderer.h"
+#include <iostream>
 
 namespace FinalStorm {
 
-SceneManager::SceneManager(std::shared_ptr<WorldManager> world)
-    : m_world(std::move(world)),
-      m_circleCenter(make_float2(0.0f, 0.0f)),
-      m_circleRadius(8.0f)
-{
+SceneManager::SceneManager() {
 }
 
-void SceneManager::initializeServices()
-{
-    std::vector<ServiceEntity::ServiceInfo> defaults = {
-        {"API Gateway", "http://localhost:8080/health", ServiceEntity::ServiceType::API_GATEWAY, 8080},
-        {"AI Orchestra", "http://localhost:3004/health", ServiceEntity::ServiceType::AI_ORCHESTRA, 3004}
-    };
-    for (const auto& info : defaults)
-        addService(info);
+SceneManager::~SceneManager() {
+    clearAllScenes();
 }
 
-ServiceEntityPtr SceneManager::addService(const ServiceEntity::ServiceInfo& info)
-{
-    uint64_t id = static_cast<uint64_t>(m_services.size() + 100);
-    auto service = std::make_shared<ServiceEntity>(id, info);
-
-    int index = static_cast<int>(m_services.size());
-    float angle = (index / 10.0f) * 2.0f * static_cast<float>(M_PI);
-    service->getTransform().position = make_float3(
-        cosf(angle) * m_circleRadius,
-        0.0f,
-        sinf(angle) * m_circleRadius);
-
-    if (m_world)
-        m_world->addEntity(service);
-
-    m_services[info.name] = service;
-    return service;
-}
-
-void SceneManager::removeService(const std::string& name)
-{
-    auto it = m_services.find(name);
-    if (it != m_services.end()) {
-        if (m_world)
-            m_world->removeEntity(it->second->getId());
-        m_services.erase(it);
+void SceneManager::addScene(const std::string& name, std::shared_ptr<Scene> scene) {
+    if (!scene) {
+        std::cerr << "Warning: Attempted to add null scene with name: " << name << std::endl;
+        return;
+    }
+    
+    m_scenes[name] = scene;
+    scene->setName(name);
+    
+    // If this is the first scene, make it current
+    if (!m_currentScene) {
+        m_currentScene = scene;
     }
 }
 
-ServiceEntityPtr SceneManager::getService(const std::string& name) const
-{
-    auto it = m_services.find(name);
-    return it != m_services.end() ? it->second : nullptr;
+void SceneManager::removeScene(const std::string& name) {
+    auto it = m_scenes.find(name);
+    if (it != m_scenes.end()) {
+        // If we're removing the current scene, clear it
+        if (m_currentScene == it->second) {
+            m_currentScene.reset();
+        }
+        
+        m_scenes.erase(it);
+    }
 }
 
-void SceneManager::updateServiceMetrics(const std::string& name,
-                                        const ServiceEntity::ServiceMetrics& metrics)
-{
-    if (auto service = getService(name))
-        service->updateMetrics(metrics);
+std::shared_ptr<Scene> SceneManager::getScene(const std::string& name) const {
+    auto it = m_scenes.find(name);
+    return (it != m_scenes.end()) ? it->second : nullptr;
+}
+
+void SceneManager::setCurrentScene(std::shared_ptr<Scene> scene) {
+    if (scene) {
+        m_currentScene = scene;
+        
+        // Make sure the scene is in our collection
+        bool found = false;
+        for (const auto& pair : m_scenes) {
+            if (pair.second == scene) {
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            // Add it with a default name
+            std::string sceneName = scene->getName();
+            if (sceneName.empty()) {
+                sceneName = "Scene_" + std::to_string(m_scenes.size());
+            }
+            addScene(sceneName, scene);
+        }
+    } else {
+        m_currentScene.reset();
+    }
+}
+
+void SceneManager::setCurrentScene(const std::string& name) {
+    auto scene = getScene(name);
+    if (scene) {
+        m_currentScene = scene;
+    } else {
+        std::cerr << "Warning: Scene '" << name << "' not found!" << std::endl;
+    }
+}
+
+void SceneManager::update(float deltaTime) {
+    if (m_currentScene) {
+        m_currentScene->update(deltaTime);
+    }
+}
+
+void SceneManager::render(MetalRenderer& renderer) {
+    if (m_currentScene) {
+        m_currentScene->render(renderer);
+    }
+}
+
+void SceneManager::clearAllScenes() {
+    m_currentScene.reset();
+    m_scenes.clear();
 }
 
 } // namespace FinalStorm

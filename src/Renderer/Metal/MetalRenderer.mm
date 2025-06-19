@@ -1,570 +1,807 @@
 //
-//  MetalRenderer.cpp
-//  FinalStorm macOS
+// src/Rendering/Metal/MetalRenderer.mm
+// Metal-based 3D renderer implementation for Apple platforms
+// Uses SIMD math types and Metal Performance Shaders for optimal GPU performance
 //
-//  Created by Wenyan Qin on 2025-06-15.
-//
 
-#import "MetalRenderer.h"
-#import "MetalShaderTypes.h"
-#include "World/Entity.h"
-#include "Scene/SceneNode.h"
-#include "Services/Visual/WebServerViz.h"
-#include "Services/Visual/DatabaseViz.h"
-#include "Environment/EnvironmentController.h"
-#include "Visualization/DataVisualizer.h"
-#include "Core/Audio/SpatialAudioSystem.h"
-#include <vector>
-#include <unordered_set>
+#include "MetalRenderer.h"
+#include "MetalMesh.h"
+#include "MetalTexture.h"
+#include "../../Scene/Scene.h"
+#include "../../Scene/SceneNode.h"
+#include "../../Scene/CameraController.h"
 
-using namespace FinalStorm;
+#ifdef __APPLE__
+#import <Metal/Metal.h>
+#import <MetalKit/MetalKit.h>
+#import <MetalPerformanceShaders/MetalPerformanceShaders.h>
+#import <Foundation/Foundation.h>
+#endif
 
-@implementation MetalRenderer
+#include <iostream>
+#include <fstream>
+
+namespace FinalStorm {
+
+MetalRenderer::MetalRenderer()
+#ifdef __APPLE__
+    : m_device(nil)
+    , m_commandQueue(nil)
+    , m_currentEncoder(nil)
+    , m_currentCommandBuffer(nil)
+    , m_defaultPipeline(nil)
+    , m_servicePipeline(nil)
+    , m_particlePipeline(nil)
+    , m_uiPipeline(nil)
+    , m_skyboxPipeline(nil)
+    , m_holographicPipeline(nil)
+    , m_bloomCompute(nil)
+    , m_postProcessCompute(nil)
+    , m_depthState(nil)
+    , m_noDepthState(nil)
+    , m_constantsBuffer(nil)
+    , m_materialBuffer(nil)
+    , m_particleBuffer(nil)
+    , m_colorTexture(nil)
+    , m_depthTexture(nil)
+    , m_bloomTexture(nil)
+    , m_shaderLibrary(nil)
+    , m_linearSampler(nil)
+    , m_nearestSampler(nil)
+    , m_anisotropicSampler(nil)
+    , m_metalView(nil)
+#endif
+    , m_viewMatrix(make_mat4())
+    , m_projectionMatrix(make_mat4())
+    , m_cameraPosition(vec3_zero())
+    , m_lightDirection(make_vec3(0.0f, -1.0f, 0.0f))
+    , m_lightColor(vec3_one())
+    , m_time(0.0f)
+    , m_screenWidth(1920)
+    , m_screenHeight(1080)
 {
-    id<MTLDevice> _device;
-    id<MTLCommandQueue> _commandQueue;
-    id<MTLRenderPipelineState> _pipelineState;
-    id<MTLDepthStencilState> _depthState;
-
-    id<MTLTexture> _shadowMap;
-    id<MTLRenderPipelineState> _shadowPipelineState;
-    id<MTLTexture> _postProcessTexture;
-    id<MTLRenderPipelineState> _postProcessPipelineState;
-    id<MTLTexture> _environmentCubemap;
-    
-    // Buffers
-    id<MTLBuffer> _uniformBuffer;
-    id<MTLBuffer> _cubeVertexBuffer;
-    id<MTLBuffer> _cubeIndexBuffer;
-    id<MTLBuffer> _planeVertexBuffer;
-    id<MTLBuffer> _planeIndexBuffer;
-    
-    // Mesh data
-    NSUInteger _cubeIndexCount;
-    NSUInteger _planeIndexCount;
-    
-    // C++ objects
-    std::shared_ptr<WorldManager> _worldManager;
-    std::shared_ptr<Camera> _camera;
-    std::shared_ptr<SceneNode> _sceneRoot;
-    std::vector<std::shared_ptr<ServiceRepresentation>> _services;
-    std::unique_ptr<EnvironmentController> _environmentController;
-    std::unique_ptr<DataVisualizer> _dataVisualizer;
-    std::shared_ptr<AudioEngine> _audioEngine;
-    std::unique_ptr<SpatialAudioSystem> _spatialAudioSystem;
-    
-    // Input state
-    FSPoint _lastMousePosition;
-    bool _mouseDown;
-    std::unordered_set<uint16_t> _keysPressed;
-    float _elapsedTime;
 }
 
-- (nonnull instancetype)initWithMetalKitView:(nonnull MTKView *)mtkView
-{
-    self = [super init];
-    if(self)
-    {
-        _device = mtkView.device;
-        _worldManager = std::make_shared<WorldManager>();
-        _camera = std::make_shared<Camera>();
-        _sceneRoot = std::make_shared<SceneNode>();
-        _environmentController = std::make_unique<EnvironmentController>();
-        _dataVisualizer = std::make_unique<DataVisualizer>();
-        _audioEngine = std::make_shared<AudioEngine>();
-        _spatialAudioSystem = std::make_unique<SpatialAudioSystem>(_audioEngine);
-        _elapsedTime = 0.0f;
-        
-        mtkView.depthStencilPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-        mtkView.colorPixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
-        mtkView.sampleCount = 1;
-        
-        [self _loadMetalWithView:mtkView];
-        [self _loadAssets];
-
-        // Add basic services
-        auto webService = std::make_shared<WebServerViz>();
-        webService->createVisualization();
-        _sceneRoot->addChild(webService);
-        _services.push_back(webService);
-        if (_spatialAudioSystem)
-            _spatialAudioSystem->registerService(webService);
-
-        auto dbService = std::make_shared<DatabaseViz>();
-        dbService->createVisualization();
-        _sceneRoot->addChild(dbService);
-        _services.push_back(dbService);
-        if (_spatialAudioSystem)
-            _spatialAudioSystem->registerService(dbService);
-
-        // Set initial camera position
-        _camera->setPosition(float3{0.0f, 5.0f, 10.0f});
-        _camera->setTarget(float3{0.0f, 0.0f, 0.0f});
-    }
-    
-    return self;
+MetalRenderer::~MetalRenderer() {
+    shutdown();
 }
 
-- (void)_loadMetalWithView:(nonnull MTKView *)view
-{
-    // Create command queue
-    _commandQueue = [_device newCommandQueue];
+bool MetalRenderer::initialize() {
+    std::cout << "MetalRenderer: Initializing Metal renderer..." << std::endl;
     
-    // Load shaders
-    id<MTLLibrary> defaultLibrary = nil;
-    NSError *error = nil;
-    
-    // First try to load the compiled metallib
-    NSString *libPath = [[NSBundle mainBundle] pathForResource:@"default" ofType:@"metallib"];
-    if (libPath) {
-        defaultLibrary = [_device newLibraryWithFile:libPath error:&error];
-        if (!defaultLibrary) {
-            NSLog(@"Failed to load Metal library at %@, error %@", libPath, error);
-        }
-    } else {
-        NSLog(@"default.metallib not found in bundle, attempting newDefaultLibrary");
-        defaultLibrary = [_device newDefaultLibrary];
-        if (!defaultLibrary) {
-            NSLog(@"Failed to load default Metal library");
-        }
+#ifdef __APPLE__
+    if (!createDevice()) {
+        std::cerr << "MetalRenderer: Failed to create Metal device!" << std::endl;
+        return false;
     }
     
-    // If metallib loading failed, try to compile from source
-    if (!defaultLibrary) {
-        NSLog(@"Attempting to compile shaders from source...");
-        NSString *shaderPath = [[NSBundle mainBundle] pathForResource:@"Shaders" ofType:@"metal"];
-        if (!shaderPath) {
-            // Try alternative paths
-            NSArray *possiblePaths = @[
-                @"Rendering/Metal/Shaders.metal",
-                @"Shaders.metal",
-                @"../Rendering/Metal/Shaders.metal"
-            ];
-            
-            for (NSString *path in possiblePaths) {
-                NSString *fullPath = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:path];
-                if ([[NSFileManager defaultManager] fileExistsAtPath:fullPath]) {
-                    shaderPath = fullPath;
-                    break;
-                }
-            }
-        }
-        
-        if (shaderPath) {
-            NSError *libraryError = nil;
-            NSString *shaderSource = [NSString stringWithContentsOfFile:shaderPath encoding:NSUTF8StringEncoding error:&libraryError];
-            if (shaderSource) {
-                defaultLibrary = [_device newLibraryWithSource:shaderSource options:nil error:&libraryError];
-                if (!defaultLibrary) {
-                    NSLog(@"Failed to compile shader from source: %@", libraryError);
-                }
-            } else {
-                NSLog(@"Failed to read shader source: %@", libraryError);
-            }
-        }
+    if (!createCommandQueue()) {
+        std::cerr << "MetalRenderer: Failed to create command queue!" << std::endl;
+        return false;
     }
     
-    // As a last resort, use the default library
-    if (!defaultLibrary) {
-        NSLog(@"Using device default library as fallback");
-        defaultLibrary = [_device newDefaultLibrary];
+    if (!createBuffers()) {
+        std::cerr << "MetalRenderer: Failed to create buffers!" << std::endl;
+        return false;
     }
+    
+    if (!createSamplers()) {
+        std::cerr << "MetalRenderer: Failed to create samplers!" << std::endl;
+        return false;
+    }
+    
+    if (!createDepthStates()) {
+        std::cerr << "MetalRenderer: Failed to create depth states!" << std::endl;
+        return false;
+    }
+    
+    if (!loadShaders()) {
+        std::cerr << "MetalRenderer: Failed to load shaders!" << std::endl;
+        return false;
+    }
+    
+    if (!createRenderPipelines()) {
+        std::cerr << "MetalRenderer: Failed to create render pipelines!" << std::endl;
+        return false;
+    }
+    
+    if (!createComputePipelines()) {
+        std::cerr << "MetalRenderer: Failed to create compute pipelines!" << std::endl;
+        return false;
+    }
+    
+    // Set default projection matrix using MathTypes
+    m_projectionMatrix = perspective(radians(60.0f), 16.0f/9.0f, 0.1f, 1000.0f);
+    
+    std::cout << "MetalRenderer: Metal renderer initialized successfully!" << std::endl;
+    return true;
+#else
+    std::cout << "MetalRenderer: Metal not available on this platform" << std::endl;
+    return false;
+#endif
+}
 
-    id<MTLFunction> vertexFunction = [defaultLibrary newFunctionWithName:@"vertexShader"];
-    id<MTLFunction> fragmentFunction = [defaultLibrary newFunctionWithName:@"fragmentShader"];
+void MetalRenderer::shutdown() {
+#ifdef __APPLE__
+    m_pipelineCache.clear();
     
-    if (!vertexFunction || !fragmentFunction) {
-        NSLog(@"Failed to find shader functions in Metal library");
-        // Don't continue if we can't find the functions
+    m_device = nil;
+    m_commandQueue = nil;
+    m_currentEncoder = nil;
+    m_currentCommandBuffer = nil;
+    m_defaultPipeline = nil;
+    m_servicePipeline = nil;
+    m_particlePipeline = nil;
+    m_uiPipeline = nil;
+    m_skyboxPipeline = nil;
+    m_holographicPipeline = nil;
+    m_bloomCompute = nil;
+    m_postProcessCompute = nil;
+    m_depthState = nil;
+    m_noDepthState = nil;
+    m_constantsBuffer = nil;
+    m_materialBuffer = nil;
+    m_particleBuffer = nil;
+    m_colorTexture = nil;
+    m_depthTexture = nil;
+    m_bloomTexture = nil;
+    m_shaderLibrary = nil;
+    m_linearSampler = nil;
+    m_nearestSampler = nil;
+    m_anisotropicSampler = nil;
+    m_metalView = nil;
+#endif
+}
+
+void MetalRenderer::beginFrame() {
+#ifdef __APPLE__
+    if (!m_commandQueue || !m_metalView) {
         return;
     }
     
-    // Rest of the pipeline setup...
-    // Configure pipeline
-    MTLRenderPipelineDescriptor *pipelineStateDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
-    pipelineStateDescriptor.label = @"MyPipeline";
-    pipelineStateDescriptor.rasterSampleCount = view.sampleCount;
-    pipelineStateDescriptor.vertexFunction = vertexFunction;
-    pipelineStateDescriptor.fragmentFunction = fragmentFunction;
-    pipelineStateDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat;
-    pipelineStateDescriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat;
-    pipelineStateDescriptor.stencilAttachmentPixelFormat = view.depthStencilPixelFormat;
-    
-    // Vertex descriptor
-    MTLVertexDescriptor *vertexDescriptor = [[MTLVertexDescriptor alloc] init];
-    
-    // Position
-    vertexDescriptor.attributes[VertexAttributePosition].format = MTLVertexFormatFloat3;
-    vertexDescriptor.attributes[VertexAttributePosition].offset = 0;
-    vertexDescriptor.attributes[VertexAttributePosition].bufferIndex = BufferIndexMeshPositions;
-    
-    // Normal
-    vertexDescriptor.attributes[VertexAttributeNormal].format = MTLVertexFormatFloat3;
-    vertexDescriptor.attributes[VertexAttributeNormal].offset = sizeof(float3);
-    vertexDescriptor.attributes[VertexAttributeNormal].bufferIndex = BufferIndexMeshPositions;
-    
-    // Texture coordinates
-    vertexDescriptor.attributes[VertexAttributeTexcoord].format = MTLVertexFormatFloat2;
-    vertexDescriptor.attributes[VertexAttributeTexcoord].offset = sizeof(float3) * 2;
-    vertexDescriptor.attributes[VertexAttributeTexcoord].bufferIndex = BufferIndexMeshPositions;
-    
-    vertexDescriptor.layouts[BufferIndexMeshPositions].stride = sizeof(Vertex);
-    vertexDescriptor.layouts[BufferIndexMeshPositions].stepRate = 1;
-    vertexDescriptor.layouts[BufferIndexMeshPositions].stepFunction = MTLVertexStepFunctionPerVertex;
-    
-    pipelineStateDescriptor.vertexDescriptor = vertexDescriptor;
-    
-    NSError *pipelineError = NULL;
-    _pipelineState = [_device newRenderPipelineStateWithDescriptor:pipelineStateDescriptor error:&pipelineError];
-    if (!_pipelineState)
-    {
-        NSLog(@"Failed to created pipeline state, error %@", pipelineError);
+    m_currentCommandBuffer = [m_commandQueue commandBuffer];
+    if (!m_currentCommandBuffer) {
+        std::cerr << "MetalRenderer: Failed to create command buffer!" << std::endl;
+        return;
     }
     
-    // Create depth state
-    MTLDepthStencilDescriptor *depthStateDesc = [[MTLDepthStencilDescriptor alloc] init];
-    depthStateDesc.depthCompareFunction = MTLCompareFunctionLess;
-    depthStateDesc.depthWriteEnabled = YES;
-    _depthState = [_device newDepthStencilStateWithDescriptor:depthStateDesc];
-
-    // Create uniform buffer
-    _uniformBuffer = [_device newBufferWithLength:sizeof(Uniforms)
-                                          options:MTLResourceStorageModeShared];
-
-    // Shadow map texture
-    MTLTextureDescriptor *shadowDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float
-                                                                                              width:1024
-                                                                                             height:1024
-                                                                                          mipmapped:NO];
-    shadowDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-    _shadowMap = [_device newTextureWithDescriptor:shadowDesc];
-
-    // Post-process texture
-    MTLTextureDescriptor *ppDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:view.colorPixelFormat
-                                                                                           width:view.drawableSize.width
-                                                                                          height:view.drawableSize.height
-                                                                                       mipmapped:NO];
-    ppDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-    _postProcessTexture = [_device newTextureWithDescriptor:ppDesc];
-
-    // Environment cube map placeholder
-    MTLTextureDescriptor *envDesc = [MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:view.colorPixelFormat size:512 mipmapped:NO];
-    envDesc.usage = MTLTextureUsageShaderRead;
-    _environmentCubemap = [_device newTextureWithDescriptor:envDesc];
-
-    _shadowPipelineState = _pipelineState;
-    _postProcessPipelineState = _pipelineState;
+    setupRenderPass();
+    updateConstants();
+#endif
 }
 
-- (void)_loadAssets
-{
-    // Create cube mesh
-    static const Vertex cubeVertices[] =
-    {
-        // Front face
-        {{-0.5, -0.5,  0.5}, { 0.0,  0.0,  1.0}, {0.0, 1.0}},
-        {{ 0.5, -0.5,  0.5}, { 0.0,  0.0,  1.0}, {1.0, 1.0}},
-        {{ 0.5,  0.5,  0.5}, { 0.0,  0.0,  1.0}, {1.0, 0.0}},
-        {{-0.5,  0.5,  0.5}, { 0.0,  0.0,  1.0}, {0.0, 0.0}},
-        
-        // Back face
-        {{ 0.5, -0.5, -0.5}, { 0.0,  0.0, -1.0}, {0.0, 1.0}},
-        {{-0.5, -0.5, -0.5}, { 0.0,  0.0, -1.0}, {1.0, 1.0}},
-        {{-0.5,  0.5, -0.5}, { 0.0,  0.0, -1.0}, {1.0, 0.0}},
-        {{ 0.5,  0.5, -0.5}, { 0.0,  0.0, -1.0}, {0.0, 0.0}},
-        
-        // Top face
-        {{-0.5,  0.5,  0.5}, { 0.0,  1.0,  0.0}, {0.0, 1.0}},
-        {{ 0.5,  0.5,  0.5}, { 0.0,  1.0,  0.0}, {1.0, 1.0}},
-        {{ 0.5,  0.5, -0.5}, { 0.0,  1.0,  0.0}, {1.0, 0.0}},
-        {{-0.5,  0.5, -0.5}, { 0.0,  1.0,  0.0}, {0.0, 0.0}},
-        
-        // Bottom face
-        {{-0.5, -0.5, -0.5}, { 0.0, -1.0,  0.0}, {0.0, 1.0}},
-        {{ 0.5, -0.5, -0.5}, { 0.0, -1.0,  0.0}, {1.0, 1.0}},
-        {{ 0.5, -0.5,  0.5}, { 0.0, -1.0,  0.0}, {1.0, 0.0}},
-        {{-0.5, -0.5,  0.5}, { 0.0, -1.0,  0.0}, {0.0, 0.0}},
-        
-        // Right face
-        {{ 0.5, -0.5,  0.5}, { 1.0,  0.0,  0.0}, {0.0, 1.0}},
-        {{ 0.5, -0.5, -0.5}, { 1.0,  0.0,  0.0}, {1.0, 1.0}},
-        {{ 0.5,  0.5, -0.5}, { 1.0,  0.0,  0.0}, {1.0, 0.0}},
-        {{ 0.5,  0.5,  0.5}, { 1.0,  0.0,  0.0}, {0.0, 0.0}},
-        
-        // Left face
-        {{-0.5, -0.5, -0.5}, {-1.0,  0.0,  0.0}, {0.0, 1.0}},
-        {{-0.5, -0.5,  0.5}, {-1.0,  0.0,  0.0}, {1.0, 1.0}},
-        {{-0.5,  0.5,  0.5}, {-1.0,  0.0,  0.0}, {1.0, 0.0}},
-        {{-0.5,  0.5, -0.5}, {-1.0,  0.0,  0.0}, {0.0, 0.0}}
-    };
+void MetalRenderer::endFrame() {
+#ifdef __APPLE__
+    if (m_currentEncoder) {
+        [m_currentEncoder endEncoding];
+        m_currentEncoder = nil;
+    }
     
-    static const uint16_t cubeIndices[] =
-    {
-        0,  1,  2,  2,  3,  0,   // front
-        4,  5,  6,  6,  7,  4,   // back
-        8,  9, 10, 10, 11,  8,   // top
-        12, 13, 14, 14, 15, 12,  // bottom
-        16, 17, 18, 18, 19, 16,  // right
-        20, 21, 22, 22, 23, 20   // left
-    };
-    
-    _cubeVertexBuffer = [_device newBufferWithBytes:cubeVertices
-                                             length:sizeof(cubeVertices)
-                                            options:MTLResourceStorageModeShared];
-    
-    _cubeIndexBuffer = [_device newBufferWithBytes:cubeIndices
-                                            length:sizeof(cubeIndices)
-                                           options:MTLResourceStorageModeShared];
-    
-    _cubeIndexCount = sizeof(cubeIndices) / sizeof(uint16_t);
-    
-    // Create plane mesh
-    const float planeSize = 50.0f;
-    const Vertex planeVertices[] =
-    {
-        {{-planeSize, 0, -planeSize}, {0, 1, 0}, {0, 0}},
-        {{ planeSize, 0, -planeSize}, {0, 1, 0}, {10, 0}},
-        {{ planeSize, 0,  planeSize}, {0, 1, 0}, {10, 10}},
-        {{-planeSize, 0,  planeSize}, {0, 1, 0}, {0, 10}}
-    };
-    
-    const uint16_t planeIndices[] = { 0, 1, 2, 2, 3, 0 };
-    
-    _planeVertexBuffer = [_device newBufferWithBytes:planeVertices
-                                             length:sizeof(planeVertices)
-                                            options:MTLResourceStorageModeShared];
-    
-    _planeIndexBuffer = [_device newBufferWithBytes:planeIndices
-                                            length:sizeof(planeIndices)
-                                           options:MTLResourceStorageModeShared];
-    
-    _planeIndexCount = sizeof(planeIndices) / sizeof(uint16_t);
-    
-    // Add some test entities
-    auto testEntity = std::make_shared<Entity>(1, EntityType::Object);
-    testEntity->setMeshName("cube");
-    testEntity->getTransform().position = float3{0.0f, 1.0f, 0.0f};
-    _worldManager->addEntity(testEntity);
-    
-    auto testEntity2 = std::make_shared<Entity>(2, EntityType::Object);
-    testEntity2->setMeshName("cube");
-    testEntity2->getTransform().position = float3{3.0f, 1.0f, -2.0f};
-    _worldManager->addEntity(testEntity2);
+    if (m_currentCommandBuffer && m_metalView.currentDrawable) {
+        [m_currentCommandBuffer presentDrawable:m_metalView.currentDrawable];
+        [m_currentCommandBuffer commit];
+        m_currentCommandBuffer = nil;
+    }
+#endif
 }
 
-- (void)updateWithDeltaTime:(float)deltaTime
-{
-    _elapsedTime += deltaTime;
-
-    // Handle keyboard input
-    float moveSpeed = 5.0f * deltaTime;
-    float3 cameraPos = _camera->getPosition();
-    float3 cameraTarget = _camera->getTarget();
-    float3 forward = simd_normalize(cameraTarget - cameraPos);
-    float3 right = simd_normalize(simd_cross(forward, float3{0, 1, 0}));
-    
-    if (_keysPressed.count(0x0D)) // W
-        cameraPos += forward * moveSpeed;
-    if (_keysPressed.count(0x01)) // S
-        cameraPos -= forward * moveSpeed;
-    if (_keysPressed.count(0x00)) // A
-        cameraPos -= right * moveSpeed;
-    if (_keysPressed.count(0x02)) // D
-        cameraPos += right * moveSpeed;
-    
-    _camera->setPosition(cameraPos);
-    _camera->setTarget(cameraPos + forward);
-
-    // Update world
-    _worldManager->update(deltaTime);
-
-    // Rebuild scene graph with visible entities
-    _sceneRoot->clearChildren();
-    auto visibleEntities = _worldManager->getVisibleEntities(*_camera);
-    for (const auto& entity : visibleEntities) {
-        auto node = std::make_shared<SceneNode>();
-        node->setEntity(entity);
-        node->update(deltaTime);
-        _sceneRoot->addChild(node);
+void MetalRenderer::render(Scene& scene) {
+#ifdef __APPLE__
+    if (!m_currentEncoder || !scene.getRootNode()) {
+        return;
     }
-
-    // Reattach service nodes
-    for (const auto& service : _services) {
-        _sceneRoot->addChild(service);
+    
+    // Update camera matrices from scene using MathTypes
+    auto camera = scene.getCameraController();
+    if (camera) {
+        setViewMatrix(camera->getViewMatrix());
+        setProjectionMatrix(camera->getProjectionMatrix());
+        setCameraPosition(camera->getPosition());
     }
+    
+    // Set default render state
+    setDefaultRenderState();
+    
+    // Render the scene graph
+    renderNode(*scene.getRootNode());
+#endif
+}
 
-    _sceneRoot->update(deltaTime);
+void MetalRenderer::renderNode(SceneNode& node, const mat4& parentTransform) {
+#ifdef __APPLE__
+    // Calculate world transform using MathTypes
+    mat4 worldTransform = parentTransform * node.getLocalTransform();
+    
+    // Render this node if it has renderable content
+    auto renderable = node.getRenderable();
+    if (renderable && renderable->isVisible()) {
+        // Update model matrix in constants using SIMD
+        RenderConstants* constants = static_cast<RenderConstants*>([m_constantsBuffer contents]);
+        constants->modelMatrix = worldTransform;
+        constants->normalMatrix = transpose(inverse(worldTransform));
+        
+        // Render the mesh
+        renderable->render(*this);
+    }
+    
+    // Recursively render children
+    for (auto& child : node.getChildren()) {
+        renderNode(*child, worldTransform);
+    }
+#endif
+}
 
-    // Example metrics animation
-    ServiceMetrics metrics{};
-    metrics.cpuUsage = (sinf(_elapsedTime) * 0.5f + 0.5f) * 100.0f;
-    metrics.memoryUsage = (cosf(_elapsedTime * 0.5f) * 0.5f + 0.5f) * 100.0f;
-    metrics.activeConnections = (int)(50 + 50 * sinf(_elapsedTime * 0.3f));
-
-    float health = _dataVisualizer->computeHealthScore(metrics);
-    _environmentController->updateFromHealth(health);
-
-    if (_spatialAudioSystem) {
-        float3 listenerPos = _camera->getPosition();
-        float3 listenerForward = simd_normalize(_camera->getTarget() - listenerPos);
-        _spatialAudioSystem->update(deltaTime, *_environmentController, listenerPos, listenerForward);
+void MetalRenderer::handleResize(int width, int height) {
+    if (width > 0 && height > 0) {
+        m_screenWidth = width;
+        m_screenHeight = height;
+        
+        float aspect = static_cast<float>(width) / height;
+        // Update projection matrix using MathTypes
+        m_projectionMatrix = perspective(radians(60.0f), aspect, 0.1f, 1000.0f);
+        
+#ifdef __APPLE__
+        // Recreate render targets if needed
+        createRenderTargets();
+#endif
     }
 }
 
-// In the drawInMTKView method, fix the uniforms update:
-- (void)drawInMTKView:(nonnull MTKView *)view
-{
-    @autoreleasepool {
-        EnvironmentState state = _environmentController->getState();
-        view.clearColor = MTLClearColorMake(state.skyboxTint.x,
-                                            state.skyboxTint.y,
-                                            state.skyboxTint.z,
-                                            1.0);
-        id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
-        commandBuffer.label = @"MyCommand";
-
-        MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
-        [self renderShadowPassWithCommandBuffer:commandBuffer];
-        if(renderPassDescriptor != nil)
-        {
-            [self renderMainPassWithCommandBuffer:commandBuffer renderPassDescriptor:renderPassDescriptor];
-            [self renderPostProcessWithCommandBuffer:commandBuffer renderPassDescriptor:renderPassDescriptor];
-            [commandBuffer presentDrawable:view.currentDrawable];
+void MetalRenderer::setView(void* metalView) {
+#ifdef __APPLE__
+    m_metalView = (__bridge MTKView*)metalView;
+    if (m_metalView) {
+        m_metalView.device = m_device;
+        m_metalView.colorPixelFormat = MTLPixelFormatBGRA8Unorm;
+        m_metalView.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
+        m_metalView.sampleCount = 1; // No MSAA for now
+        
+        // Enable wide color if available
+        if (@available(macOS 10.12, iOS 10.0, *)) {
+            m_metalView.colorspace = CGColorSpaceCreateWithName(kCGColorSpaceDisplayP3);
         }
-
-        [commandBuffer commit];
     }
+#endif
 }
 
-- (void)mtkView:(nonnull MTKView *)view drawableSizeWillChange:(CGSize)size
-{
-   float aspect = size.width / (float)size.height;
-   _camera->setPerspective(60.0f * M_PI / 180.0f, aspect, 0.1f, 1000.0f);
-}
-
-- (void)renderShadowPassWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
-{
-    (void)commandBuffer;
-    // Placeholder for shadow map rendering
-}
-
-- (void)renderMainPassWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
-                 renderPassDescriptor:(MTLRenderPassDescriptor*)renderPassDescriptor
-{
-    id<MTLRenderCommandEncoder> renderEncoder =
-        [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-    renderEncoder.label = @"MainPass";
-
-    [renderEncoder setCullMode:MTLCullModeBack];
-    [renderEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-    [renderEncoder setRenderPipelineState:_pipelineState];
-    [renderEncoder setDepthStencilState:_depthState];
-
-    Uniforms *uniforms = (Uniforms*)_uniformBuffer.contents;
-    uniforms->viewProjectionMatrix = _camera->getViewProjectionMatrix();
-
-    // Render ground plane
-    uniforms->modelMatrix = matrix_identity();
-    uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
-    EnvironmentState state = _environmentController->getState();
-    float pulse = state.groundPulse;
-    uniforms->color = simd_make_float4(pulse, pulse, pulse, 1.0f);
-
-    [renderEncoder setVertexBuffer:_planeVertexBuffer offset:0 atIndex:BufferIndexMeshPositions];
-    [renderEncoder setVertexBuffer:_uniformBuffer offset:0 atIndex:BufferIndexUniforms];
-    [renderEncoder setFragmentBuffer:_uniformBuffer offset:0 atIndex:BufferIndexUniforms];
-
-    [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                indexCount:_planeIndexCount
-                                 indexType:MTLIndexTypeUInt16
-                               indexBuffer:_planeIndexBuffer
-                         indexBufferOffset:0];
-
-    // Render scene graph
-    for (const auto& child : _sceneRoot->getChildren())
-    {
-        if (!child) continue;
-        auto entity = child->getEntity();
-        if (!entity || entity->getMeshName() != "cube") continue;
-
-        uniforms->modelMatrix = child->getWorldMatrix();
-        uniforms->normalMatrix = matrix3x3_upper_left(uniforms->modelMatrix);
-        uniforms->color = simd_make_float4(0.8f, 0.2f, 0.2f, 1.0f);
-
-        [renderEncoder setVertexBuffer:_cubeVertexBuffer offset:0 atIndex:BufferIndexMeshPositions];
-
-        [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                                    indexCount:_cubeIndexCount
-                                     indexType:MTLIndexTypeUInt16
-                                   indexBuffer:_cubeIndexBuffer
-                             indexBufferOffset:0];
+std::shared_ptr<MetalMesh> MetalRenderer::createMesh(const std::vector<float>& vertices, 
+                                                     const std::vector<uint32_t>& indices) {
+#ifdef __APPLE__
+    if (!m_device) {
+        return nullptr;
     }
-
-    [renderEncoder endEncoding];
+    
+    return std::make_shared<MetalMesh>(m_device, vertices, indices);
+#else
+    return nullptr;
+#endif
 }
 
-- (void)renderPostProcessWithCommandBuffer:(id<MTLCommandBuffer>)commandBuffer
-                     renderPassDescriptor:(MTLRenderPassDescriptor*)renderPassDescriptor
-{
-    (void)commandBuffer;
-    (void)renderPassDescriptor;
-    // Placeholder for post-processing
+std::shared_ptr<MetalTexture> MetalRenderer::createTexture(const std::string& filename) {
+#ifdef __APPLE__
+    if (!m_device) {
+        return nullptr;
+    }
+    
+    return std::make_shared<MetalTexture>(m_device, filename);
+#else
+    return nullptr;
+#endif
 }
 
-#pragma mark - Input Handling
-
-- (void)handleMouseDown:(FSPoint)point
-{
-   _mouseDown = true;
-   _lastMousePosition = point;
+std::shared_ptr<MetalTexture> MetalRenderer::createTexture(int width, int height, const void* data) {
+#ifdef __APPLE__
+    if (!m_device) {
+        return nullptr;
+    }
+    
+    return std::make_shared<MetalTexture>(m_device, width, height, data);
+#else
+    return nullptr;
+#endif
 }
 
-- (void)handleMouseDragged:(FSPoint)point
-{
-   if (_mouseDown)
-   {
-       float deltaX = point.x - _lastMousePosition.x;
-       float deltaY = point.y - _lastMousePosition.y;
-       
-       // Rotate camera
-       float sensitivity = 0.005f;
-       float3 cameraPos = _camera->getPosition();
-       float3 cameraTarget = _camera->getTarget();
-       float3 toTarget = cameraTarget - cameraPos;
-       
-       // Horizontal rotation
-       float angle = -deltaX * sensitivity;
-       float cosAngle = cosf(angle);
-       float sinAngle = sinf(angle);
-       
-       float3 newToTarget;
-       newToTarget.x = toTarget.x * cosAngle - toTarget.z * sinAngle;
-       newToTarget.y = toTarget.y;
-       newToTarget.z = toTarget.x * sinAngle + toTarget.z * cosAngle;
-       
-       _camera->setTarget(cameraPos + newToTarget);
-       
-       _lastMousePosition = point;
-   }
+bool MetalRenderer::loadShaders() {
+#ifdef __APPLE__
+    // Load shader library from app bundle
+    NSBundle* bundle = [NSBundle mainBundle];
+    NSString* libraryPath = [bundle pathForResource:@"FinalStorm" ofType:@"metallib"];
+    
+    if (!libraryPath) {
+        // Try loading from different locations
+        libraryPath = [bundle pathForResource:@"default" ofType:@"metallib"];
+    }
+    
+    if (!libraryPath) {
+        std::cerr << "MetalRenderer: Could not find shader library in app bundle!" << std::endl;
+        return false;
+    }
+    
+    NSError* error = nil;
+    m_shaderLibrary = [m_device newLibraryWithFile:libraryPath error:&error];
+    
+    if (!m_shaderLibrary) {
+        std::cerr << "MetalRenderer: Failed to load shader library: " 
+                  << error.localizedDescription.UTF8String << std::endl;
+        return false;
+    }
+    
+    std::cout << "MetalRenderer: Shader library loaded successfully" << std::endl;
+    return true;
+#else
+    return false;
+#endif
 }
 
-- (void)handleMouseUp:(FSPoint)point
-{
-   _mouseDown = false;
+// State setters using MathTypes
+void MetalRenderer::setViewMatrix(const mat4& view) {
+    m_viewMatrix = view;
 }
 
-- (void)handleKeyDown:(uint16_t)keyCode
-{
-   _keysPressed.insert(keyCode);
+void MetalRenderer::setProjectionMatrix(const mat4& projection) {
+    m_projectionMatrix = projection;
 }
 
-- (void)handleKeyUp:(uint16_t)keyCode
-{
-   _keysPressed.erase(keyCode);
+void MetalRenderer::setCameraPosition(const vec3& position) {
+    m_cameraPosition = position;
 }
 
-@synthesize worldManager = _worldManager;
-@synthesize camera = _camera;
-@synthesize sceneRoot = _sceneRoot;
+void MetalRenderer::setLightDirection(const vec3& direction) {
+    m_lightDirection = normalize(direction);
+}
 
-@end
+void MetalRenderer::setLightColor(const vec3& color) {
+    m_lightColor = color;
+}
+
+void MetalRenderer::setTime(float time) {
+    m_time = time;
+}
+
+// Private methods
+bool MetalRenderer::createDevice() {
+#ifdef __APPLE__
+    m_device = MTLCreateSystemDefaultDevice();
+    if (m_device) {
+        std::cout << "MetalRenderer: Created Metal device: " 
+                  << m_device.name.UTF8String << std::endl;
+    }
+    return m_device != nil;
+#else
+    return false;
+#endif
+}
+
+bool MetalRenderer::createCommandQueue() {
+#ifdef __APPLE__
+    if (!m_device) {
+        return false;
+    }
+    
+    m_commandQueue = [m_device newCommandQueue];
+    return m_commandQueue != nil;
+#else
+    return false;
+#endif
+}
+
+bool MetalRenderer::createRenderPipelines() {
+#ifdef __APPLE__
+    if (!m_device || !m_shaderLibrary) {
+        return false;
+    }
+    
+    // Create default pipeline
+    m_defaultPipeline = (__bridge id<MTLRenderPipelineState>)createRenderPipeline(
+        "default_vertex", "default_fragment", "Default Pipeline");
+    
+    // Create service visualization pipeline
+    m_servicePipeline = (__bridge id<MTLRenderPipelineState>)createRenderPipeline(
+        "default_vertex", "service_fragment", "Service Pipeline");
+    
+    // Create particle pipeline
+    m_particlePipeline = (__bridge id<MTLRenderPipelineState>)createRenderPipeline(
+        "particle_vertex", "particle_fragment", "Particle Pipeline");
+    
+    // Create UI pipeline
+    m_uiPipeline = (__bridge id<MTLRenderPipelineState>)createRenderPipeline(
+        "unlit_vertex", "holographic_fragment", "UI Pipeline");
+    
+    // Create skybox pipeline
+    m_skyboxPipeline = (__bridge id<MTLRenderPipelineState>)createRenderPipeline(
+        "skybox_vertex", "skybox_fragment", "Skybox Pipeline");
+    
+    return m_defaultPipeline != nil;
+#else
+    return false;
+#endif
+}
+
+bool MetalRenderer::createComputePipelines() {
+#ifdef __APPLE__
+    if (!m_device || !m_shaderLibrary) {
+        return false;
+    }
+    
+    // Create bloom compute pipeline
+    m_bloomCompute = (__bridge id<MTLComputePipelineState>)createComputePipeline(
+        "bloom_compute", "Bloom Compute");
+    
+    // Create post-process compute pipeline
+    m_postProcessCompute = (__bridge id<MTLComputePipelineState>)createComputePipeline(
+        "post_process_compute", "Post Process Compute");
+    
+    return m_bloomCompute != nil;
+#else
+    return false;
+#endif
+}
+
+bool MetalRenderer::createDepthStates() {
+#ifdef __APPLE__
+    if (!m_device) {
+        return false;
+    }
+    
+    // Create depth test enabled state
+    MTLDepthStencilDescriptor* depthDescriptor = [[MTLDepthStencilDescriptor alloc] init];
+    depthDescriptor.depthCompareFunction = MTLCompareFunctionLess;
+    depthDescriptor.depthWriteEnabled = YES;
+    m_depthState = [m_device newDepthStencilStateWithDescriptor:depthDescriptor];
+    
+    // Create depth test disabled state
+    MTLDepthStencilDescriptor* noDepthDescriptor = [[MTLDepthStencilDescriptor alloc] init];
+    noDepthDescriptor.depthCompareFunction = MTLCompareFunctionAlways;
+    noDepthDescriptor.depthWriteEnabled = NO;
+    m_noDepthState = [m_device newDepthStencilStateWithDescriptor:noDepthDescriptor];
+    
+    return m_depthState != nil && m_noDepthState != nil;
+#else
+    return false;
+#endif
+}
+
+bool MetalRenderer::createBuffers() {
+#ifdef __APPLE__
+    if (!m_device) {
+        return false;
+    }
+    
+    // Create constants buffer
+    m_constantsBuffer = [m_device newBufferWithLength:sizeof(RenderConstants) 
+                                              options:MTLResourceStorageModeShared];
+    
+    // Create material buffer
+    m_materialBuffer = [m_device newBufferWithLength:sizeof(MaterialConstants) 
+                                             options:MTLResourceStorageModeShared];
+    
+    // Create particle buffer
+    m_particleBuffer = [m_device newBufferWithLength:sizeof(ParticleConstants) * 10000 
+                                             options:MTLResourceStorageModeShared];
+    
+    return m_constantsBuffer != nil && m_materialBuffer != nil && m_particleBuffer != nil;
+#else
+    return false;
+#endif
+}
+
+bool MetalRenderer::createSamplers() {
+#ifdef __APPLE__
+    if (!m_device) {
+        return false;
+    }
+    
+    // Linear sampler
+    MTLSamplerDescriptor* linearDesc = [[MTLSamplerDescriptor alloc] init];
+    linearDesc.minFilter = MTLSamplerMinMagFilterLinear;
+    linearDesc.magFilter = MTLSamplerMinMagFilterLinear;
+    linearDesc.mipFilter = MTLSamplerMipFilterLinear;
+    linearDesc.sAddressMode = MTLSamplerAddressModeRepeat;
+    linearDesc.tAddressMode = MTLSamplerAddressModeRepeat;
+    m_linearSampler = [m_device newSamplerStateWithDescriptor:linearDesc];
+    
+    // Nearest sampler
+    MTLSamplerDescriptor* nearestDesc = [[MTLSamplerDescriptor alloc] init];
+    nearestDesc.minFilter = MTLSamplerMinMagFilterNearest;
+    nearestDesc.magFilter = MTLSamplerMinMagFilterNearest;
+    nearestDesc.mipFilter = MTLSamplerMipFilterNearest;
+    nearestDesc.sAddressMode = MTLSamplerAddressModeClampToEdge;
+    nearestDesc.tAddressMode = MTLSamplerAddressModeClampToEdge;
+    m_nearestSampler = [m_device newSamplerStateWithDescriptor:nearestDesc];
+    
+    // Anisotropic sampler
+    MTLSamplerDescriptor* anisotropicDesc = [[MTLSamplerDescriptor alloc] init];
+    anisotropicDesc.minFilter = MTLSamplerMinMagFilterLinear;
+    anisotropicDesc.magFilter = MTLSamplerMinMagFilterLinear;
+    anisotropicDesc.mipFilter = MTLSamplerMipFilterLinear;
+    anisotropicDesc.maxAnisotropy = 16;
+    anisotropicDesc.sAddressMode = MTLSamplerAddressModeRepeat;
+    anisotropicDesc.tAddressMode = MTLSamplerAddressModeRepeat;
+    m_anisotropicSampler = [m_device newSamplerStateWithDescriptor:anisotropicDesc];
+    
+    return m_linearSampler != nil && m_nearestSampler != nil && m_anisotropicSampler != nil;
+#else
+    return false;
+#endif
+}
+
+bool MetalRenderer::createRenderTargets() {
+#ifdef __APPLE__
+    if (!m_device || m_screenWidth <= 0 || m_screenHeight <= 0) {
+        return false;
+    }
+    
+    // Create color texture for post-processing
+    MTLTextureDescriptor* colorDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+                                                                                         width:m_screenWidth
+                                                                                        height:m_screenHeight
+                                                                                     mipmapped:NO];
+    colorDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    m_colorTexture = [m_device newTextureWithDescriptor:colorDesc];
+    
+    // Create depth texture
+    MTLTextureDescriptor* depthDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float
+                                                                                         width:m_screenWidth
+                                                                                        height:m_screenHeight
+                                                                                     mipmapped:NO];
+    depthDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    m_depthTexture = [m_device newTextureWithDescriptor:depthDesc];
+    
+    // Create bloom texture (half resolution)
+    MTLTextureDescriptor* bloomDesc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float
+                                                                                          width:m_screenWidth / 2
+                                                                                         height:m_screenHeight / 2
+                                                                                      mipmapped:YES];
+    bloomDesc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+    m_bloomTexture = [m_device newTextureWithDescriptor:bloomDesc];
+    
+    return m_colorTexture != nil && m_depthTexture != nil && m_bloomTexture != nil;
+#else
+    return false;
+#endif
+}
+
+void MetalRenderer::updateConstants() {
+#ifdef __APPLE__
+    if (!m_constantsBuffer) {
+        return;
+    }
+    
+    // Update render constants using SIMD types
+    RenderConstants* constants = static_cast<RenderConstants*>([m_constantsBuffer contents]);
+    constants->viewMatrix = m_viewMatrix;
+    constants->projectionMatrix = m_projectionMatrix;
+    constants->cameraPosition = m_cameraPosition;
+    constants->time = m_time;
+    constants->lightDirection = m_lightDirection;
+    constants->lightColor = m_lightColor;
+    constants->lightIntensity = 1.0f;
+    constants->screenParams = make_vec4(
+        static_cast<float>(m_screenWidth), 
+        static_cast<float>(m_screenHeight),
+        1.0f / static_cast<float>(m_screenWidth),
+        1.0f / static_cast<float>(m_screenHeight)
+    );
+#endif
+}
+
+void MetalRenderer::setupRenderPass() {
+#ifdef __APPLE__
+    if (!m_metalView || !m_currentCommandBuffer) {
+        return;
+    }
+    
+    MTLRenderPassDescriptor* renderPassDescriptor = m_metalView.currentRenderPassDescriptor;
+    if (!renderPassDescriptor) {
+        return;
+    }
+    
+    // Clear to a dark blue color for space-like environment
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.05, 0.05, 0.15, 1.0);
+    renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+    renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+    
+    // Set up depth buffer
+    renderPassDescriptor.depthAttachment.clearDepth = 1.0;
+    renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+    renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionStore;
+    
+    m_currentEncoder = [m_currentCommandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+    if (m_currentEncoder) {
+        m_currentEncoder.label = @"Main Render Pass";
+    }
+#endif
+}
+
+void MetalRenderer::setDefaultRenderState() {
+#ifdef __APPLE__
+    if (!m_currentEncoder) {
+        return;
+    }
+    
+    // Set default pipeline
+    if (m_defaultPipeline) {
+        [m_currentEncoder setRenderPipelineState:m_defaultPipeline];
+    }
+    
+    // Set depth state
+    if (m_depthState) {
+        [m_currentEncoder setDepthStencilState:m_depthState];
+    }
+    
+    // Bind constant buffers
+    if (m_constantsBuffer) {
+        [m_currentEncoder setVertexBuffer:m_constantsBuffer offset:0 atIndex:1];
+        [m_currentEncoder setFragmentBuffer:m_constantsBuffer offset:0 atIndex:1];
+    }
+    
+    if (m_materialBuffer) {
+        [m_currentEncoder setFragmentBuffer:m_materialBuffer offset:0 atIndex:2];
+    }
+    
+    // Bind default samplers
+    bindSamplers();
+#endif
+}
+
+void MetalRenderer::bindSamplers() {
+#ifdef __APPLE__
+    if (!m_currentEncoder) {
+        return;
+    }
+    
+    if (m_linearSampler) {
+        [m_currentEncoder setFragmentSamplerState:m_linearSampler atIndex:0];
+    }
+    
+    if (m_anisotropicSampler) {
+        [m_currentEncoder setFragmentSamplerState:m_anisotropicSampler atIndex:1];
+    }
+    
+    if (m_nearestSampler) {
+        [m_currentEncoder setFragmentSamplerState:m_nearestSampler atIndex:2];
+    }
+#endif
+}
+
+void* MetalRenderer::createRenderPipeline(const std::string& vertexFunc, const std::string& fragmentFunc,
+                                         const std::string& label) {
+#ifdef __APPLE__
+    if (!m_device || !m_shaderLibrary) {
+        return nil;
+    }
+    
+    NSString* vertexFuncName = [NSString stringWithUTF8String:vertexFunc.c_str()];
+    NSString* fragmentFuncName = [NSString stringWithUTF8String:fragmentFunc.c_str()];
+    
+    id<MTLFunction> vertexFunction = [m_shaderLibrary newFunctionWithName:vertexFuncName];
+    id<MTLFunction> fragmentFunction = [m_shaderLibrary newFunctionWithName:fragmentFuncName];
+    
+    if (!vertexFunction || !fragmentFunction) {
+        std::cerr << "MetalRenderer: Could not find shader functions: " 
+                  << vertexFunc << ", " << fragmentFunc << std::endl;
+        return nil;
+    }
+    
+    MTLRenderPipelineDescriptor* descriptor = [[MTLRenderPipelineDescriptor alloc] init];
+    descriptor.label = [NSString stringWithUTF8String:label.c_str()];
+    descriptor.vertexFunction = vertexFunction;
+    descriptor.fragmentFunction = fragmentFunction;
+    descriptor.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+    descriptor.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+    
+    // Set up vertex descriptor for standard vertex layout
+    MTLVertexDescriptor* vertexDescriptor = [[MTLVertexDescriptor alloc] init];
+    
+    // Position (float3)
+    vertexDescriptor.attributes[0].format = MTLVertexFormatFloat3;
+    vertexDescriptor.attributes[0].offset = 0;
+    vertexDescriptor.attributes[0].bufferIndex = 0;
+    
+    // Normal (float3)
+    vertexDescriptor.attributes[1].format = MTLVertexFormatFloat3;
+    vertexDescriptor.attributes[1].offset = 12;
+    vertexDescriptor.attributes[1].bufferIndex = 0;
+    
+    // TexCoord (float2)
+    vertexDescriptor.attributes[2].format = MTLVertexFormatFloat2;
+    vertexDescriptor.attributes[2].offset = 24;
+    vertexDescriptor.attributes[2].bufferIndex = 0;
+    
+    // Color (float3)
+    vertexDescriptor.attributes[3].format = MTLVertexFormatFloat3;
+    vertexDescriptor.attributes[3].offset = 32;
+    vertexDescriptor.attributes[3].bufferIndex = 0;
+    
+    // Buffer layout
+    vertexDescriptor.layouts[0].stride = 44; // 3+3+2+3 floats * 4 bytes
+    vertexDescriptor.layouts[0].stepRate = 1;
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    
+    descriptor.vertexDescriptor = vertexDescriptor;
+    
+    // Enable blending for transparent objects
+    descriptor.colorAttachments[0].blendingEnabled = YES;
+    descriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;
+    descriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperationAdd;
+    descriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
+    descriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactorSourceAlpha;
+    descriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+    descriptor.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+    
+    NSError* error = nil;
+    id<MTLRenderPipelineState> pipeline = [m_device newRenderPipelineStateWithDescriptor:descriptor error:&error];
+    
+    if (!pipeline) {
+        std::cerr << "MetalRenderer: Failed to create render pipeline '" << label << "': " 
+                  << error.localizedDescription.UTF8String << std::endl;
+        return nil;
+    }
+    
+    std::cout << "MetalRenderer: Created render pipeline: " << label << std::endl;
+    return (__bridge void*)pipeline;
+#else
+    return nullptr;
+#endif
+}
+
+void* MetalRenderer::createComputePipeline(const std::string& kernelFunc, const std::string& label) {
+#ifdef __APPLE__
+    if (!m_device || !m_shaderLibrary) {
+        return nil;
+    }
+    
+    NSString* kernelFuncName = [NSString stringWithUTF8String:kernelFunc.c_str()];
+    id<MTLFunction> kernelFunction = [m_shaderLibrary newFunctionWithName:kernelFuncName];
+    
+    if (!kernelFunction) {
+        std::cerr << "MetalRenderer: Could not find compute kernel: " << kernelFunc << std::endl;
+        return nil;
+    }
+    
+    NSError* error = nil;
+    id<MTLComputePipelineState> pipeline = [m_device newComputePipelineStateWithFunction:kernelFunction error:&error];
+    
+    if (!pipeline) {
+        std::cerr << "MetalRenderer: Failed to create compute pipeline '" << label << "': " 
+                  << error.localizedDescription.UTF8String << std::endl;
+        return nil;
+    }
+    
+    std::cout << "MetalRenderer: Created compute pipeline: " << label << std::endl;
+    return (__bridge void*)pipeline;
+#else
+    return nullptr;
+#endif
+}
+
+void MetalRenderer::setCurrentPipeline(const std::string& pipelineName) {
+#ifdef __APPLE__
+    if (!m_currentEncoder) {
+        return;
+    }
+    
+    // Set the appropriate pipeline based on name
+    if (pipelineName == "default" && m_defaultPipeline) {
+        [m_currentEncoder setRenderPipelineState:m_defaultPipeline];
+    }
+    else if (pipelineName == "service" && m_servicePipeline) {
+        [m_currentEncoder setRenderPipelineState:m_servicePipeline];
+    }
+    else if (pipelineName == "particle" && m_particlePipeline) {
+        [m_currentEncoder setRenderPipelineState:m_particlePipeline];
+    }
+    else if (pipelineName == "ui" && m_uiPipeline) {
+        [m_currentEncoder setRenderPipelineState:m_uiPipeline];
+    }
+    else if (pipelineName == "skybox" && m_skyboxPipeline) {
+        [m_currentEncoder setRenderPipelineState:m_skyboxPipeline];
+        [m_currentEncoder setDepthStencilState:m_noDepthState]; // Skybox renders without depth
+    }
+    else if (pipelineName == "holographic" && m_holographicPipeline) {
+        [m_currentEncoder setRenderPipelineState:m_holographicPipeline];
+    }
+#endif
+}
+
+} // namespace FinalStorm

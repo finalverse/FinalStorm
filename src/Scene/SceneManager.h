@@ -1,31 +1,48 @@
+//
+// SceneManager.h - Scene Management System
+// FinalStorm 3D Client for Finalverse
+//
+
 #pragma once
 
-#include "World/WorldManager.h"
-#include "Services/ServiceEntity.h"
-#include <map>
 #include <memory>
+#include <string>
+#include <unordered_map>
+
+// Forward declarations
+namespace FinalStorm {
+    class Scene;
+    class MetalRenderer;
+}
 
 namespace FinalStorm {
 
 class SceneManager {
 public:
-    explicit SceneManager(std::shared_ptr<WorldManager> world);
-
-    void initializeServices();
-
-    ServiceEntityPtr addService(const ServiceEntity::ServiceInfo& info);
-    void removeService(const std::string& name);
-    ServiceEntityPtr getService(const std::string& name) const;
-
-    void updateServiceMetrics(const std::string& name,
-                              const ServiceEntity::ServiceMetrics& metrics);
-
+    SceneManager();
+    ~SceneManager();
+    
+    // Scene management
+    void addScene(const std::string& name, std::shared_ptr<Scene> scene);
+    void removeScene(const std::string& name);
+    std::shared_ptr<Scene> getScene(const std::string& name) const;
+    
+    // Current scene
+    void setCurrentScene(std::shared_ptr<Scene> scene);
+    void setCurrentScene(const std::string& name);
+    std::shared_ptr<Scene> getCurrentScene() const { return m_currentScene; }
+    
+    // Updates
+    void update(float deltaTime);
+    void render(MetalRenderer& renderer);
+    
+    // Utilities
+    void clearAllScenes();
+    size_t getSceneCount() const { return m_scenes.size(); }
+    
 private:
-    std::shared_ptr<WorldManager> m_world;
-    std::map<std::string, ServiceEntityPtr> m_services;
-
-    float2 m_circleCenter;
-    float  m_circleRadius;
+    std::unordered_map<std::string, std::shared_ptr<Scene>> m_scenes;
+    std::shared_ptr<Scene> m_currentScene;
 };
 
 } // namespace FinalStorm
