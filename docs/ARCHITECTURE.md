@@ -44,7 +44,7 @@ Located under `src/Core/Math`, this module offers vector and matrix math helpers
 `src/World` implements the entity system and world grid management. `WorldManager` keeps track of entities, updates them each frame and handles visibility. `SceneManager` creates service entities that are visualised in the scene.
 
 ### Networking
-Networking code lives in `src/Core/Networking`. `FinalverseClient` manages the websocket connection to a Finalverse server and exchanges messages defined in `MessageProtocol`. Player position updates and world data are sent through this layer.
+Networking code lives in `src/Network`. `FinalverseClient` manages the websocket connection to a Finalverse server and exchanges messages defined in `MessageProtocol`. Player position updates and world data are sent through this layer.
 
 ### Audio
 The audio engine in `src/Core/Audio` provides loading and playback of sound clips with positional audio. `SpatialAudioSystem` ties service nodes to 3D audio sources so each running service can emit sound in the world.
@@ -114,7 +114,7 @@ FinalStorm/
 │   ├── Core/
 │   │   ├── Math.h                 # Public math utilities
 │   │   └── Transform.h            # Public transform interface
-│   ├── Networking/
+│   ├── Network/
 │   │   └── FinalverseClient.h     # Public client interface
 │   └── FinalStorm.h               # Main public header
 ├── src/                            # Implementation files
@@ -141,7 +141,7 @@ FinalStorm/
 │   │   │   ├── Transform.cpp
 │   │   │   └── Transform.h       # Internal transform header
 │   │   │
-│   │   ├── Networking/
+│   │   ├── Network/
 │   │   │   ├── FinalverseClient.cpp
 │   │   │   ├── FinalverseClient.h  # Internal client header
 │   │   │   ├── MessageProtocol.cpp

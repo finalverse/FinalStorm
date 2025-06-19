@@ -1,4 +1,4 @@
-#include "Core/Networking/NetworkClient.h"
+#include "Network/NetworkClient.h"
 #include <iostream>
 
 namespace FinalStorm {

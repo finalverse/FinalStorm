@@ -3,7 +3,7 @@
 #include "Scene/SceneLoader.h"
 #include "World/WorldManager.h"
 #include "Rendering/Metal/MetalRenderer.h"
-#include "Core/Networking/FinalverseClient.h"
+#include "Network/FinalverseClient.h"
 #include <iostream>
 
 namespace FinalStorm {

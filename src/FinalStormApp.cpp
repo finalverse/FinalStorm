@@ -7,7 +7,7 @@
 #include "FinalStormApp.h"
 #include "Scene/SceneManager.h"
 #include "Rendering/Metal/MetalRenderer.h"
-#include "Core/Networking/FinalverseClient.h"
+#include "Network/FinalverseClient.h"
 #include "Core/Input/InteractionManager.h"
 #include "Core/Audio/AudioEngine.h"
 #include "Services/ServiceFactory.h"

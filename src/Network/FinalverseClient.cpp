@@ -5,7 +5,7 @@
 //  Created by Wenyan Qin on 2025-06-15.
 //
 
-#include "Core/Networking/FinalverseClient.h"
+#include "Network/FinalverseClient.h"
 #include "World/WorldManager.h"
 #include <websocketpp/config/asio_no_tls_client.hpp>
 #include <websocketpp/client.hpp>
