@@ -1,4 +1,4 @@
-// Core/Networking/NetworkClient.h
+// Network/NetworkClient.h
 #pragma once
 
 #include <string>
