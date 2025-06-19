@@ -43,6 +43,8 @@ For a bare CMake invocation you can also run:
 ./generate_xcodeproj.sh
 ```
 
+See [docs/BUILD.md](docs/BUILD.md) for additional build information.
+
 ## Verifying the repository
 
 A helper script `verify_structure.sh` checks that all expected files are
