@@ -1,12 +1,12 @@
 // ServiceFactory.cpp - Implementation of service factory
 
 #include "Services/ServiceFactory.h"
-#include "Visual/APIGatewayViz.h"
-#include "Visual/AIServiceViz.h"
-#include "Visual/AudioServiceViz.h"
-#include "Visual/WorldEngineViz.h"
-#include "Visual/DatabaseViz.h"
-#include "Visual/CommunityViz.h"
+#include "Services/Visual/APIGatewayViz.h"
+#include "Services/Visual/AIServiceViz.h"
+#include "Services/Visual/AudioServiceViz.h"
+#include "Services/Visual/WorldEngineViz.h"
+#include "Services/Visual/DatabaseViz.h"
+#include "Services/Visual/CommunityViz.h"
 
 namespace FinalStorm {
 
