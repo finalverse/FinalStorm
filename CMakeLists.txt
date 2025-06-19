@@ -33,7 +33,7 @@ set(SHARED_SOURCES
     src/Core/Audio/AudioEngine.cpp
     src/Core/Audio/SpatialAudioSystem.cpp
     src/Core/Input/InteractionManager.cpp
-    src/Visualization/DataVisualizer.cpp
+    src/Visual/DataVisualizer.cpp
     
     # Scene
     src/Scene/SceneNode.cpp
