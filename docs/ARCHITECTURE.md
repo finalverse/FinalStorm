@@ -13,13 +13,13 @@ High Level Architecture
           v
 +------------------+           +---------------------------+
 | MetalRenderer    |<--------->| Renderer interface        |
-| (platform code)  |           | Shared/Renderer/Renderer.h|
+| (platform code)  |           | src/Renderer/Renderer.h   |
 +------------------+           +---------------------------+
           |
           v
 +---------------------------------------------------------+
 | Scene Graph & World Management                          |
-|  - SceneNode hierarchy (Shared/Scene)              |
+|  - SceneNode hierarchy (src/Scene)                |
 |  - WorldManager, SceneManager, Entity types             |
 |  - ServiceEntity for representing backend services      |
 |  - ServiceVisualizations for rich 3D visuals            |
@@ -38,26 +38,26 @@ High Level Architecture
 ## Core Modules
 
 ### Math
-Located under `Shared/Core/Math`, this module offers vector and matrix math helpers along with a `Camera` class used by the renderer. Utility functions for transformations and SIMD types are provided in `Math.h` and `Transform.h`.
+Located under `src/Core/Math`, this module offers vector and matrix math helpers along with a `Camera` class used by the renderer. Utility functions for transformations and SIMD types are provided in `Math.h` and `Transform.h`.
 
 ### World
-`Shared/Core/World` implements the entity system and world grid management. `WorldManager` keeps track of entities, updates them each frame and handles visibility. `SceneManager` creates service entities that are visualised in the scene.
+`src/World` implements the entity system and world grid management. `WorldManager` keeps track of entities, updates them each frame and handles visibility. `SceneManager` creates service entities that are visualised in the scene.
 
 ### Networking
-Networking code lives in `Shared/Core/Networking`. `FinalverseClient` manages the websocket connection to a Finalverse server and exchanges messages defined in `MessageProtocol`. Player position updates and world data are sent through this layer.
+Networking code lives in `src/Core/Networking`. `FinalverseClient` manages the websocket connection to a Finalverse server and exchanges messages defined in `MessageProtocol`. Player position updates and world data are sent through this layer.
 
 ### Audio
-The audio engine in `Shared/Core/Audio` provides loading and playback of sound clips with positional audio. `SpatialAudioSystem` ties service nodes to 3D audio sources so each running service can emit sound in the world.
+The audio engine in `src/Core/Audio` provides loading and playback of sound clips with positional audio. `SpatialAudioSystem` ties service nodes to 3D audio sources so each running service can emit sound in the world.
 
 ### Rendering
-A platform independent interface is defined in `Shared/Renderer`. The current implementation uses Metal and resides in `MetalRenderer`. It supports macOS and iOS with a `RendererFactory` prepared for future Vulkan or DirectX 12 backends.
+A platform independent interface is defined in `src/Renderer`. The current implementation uses Metal and resides in `MetalRenderer`. It supports macOS and iOS with a `RendererFactory` prepared for future Vulkan or DirectX 12 backends.
 
 ### Scene Graph
-Classes under `Shared/Scene` form a hierarchical scene graph. `SceneNode` is the base, while `ServiceNode` and `ServiceVisualization` specialise it for representing running services. Nodes can update each frame and issue draw calls through the renderer.
+Classes under `src/Scene` form a hierarchical scene graph. `SceneNode` is the base, while `ServiceNode` and `ServiceVisualization` specialise it for representing running services. Nodes can update each frame and issue draw calls through the renderer.
 Individual visualization classes reside under `src/Services/Visual`.
 
 ### UI
-`Shared/UI3D` contains components such as `HolographicDisplay`, `Panel` and `InteractiveOrb`. These provide simple 3D user interface elements used by service visualisations.
+`src/UI` contains components such as `HolographicDisplay`, `Panel` and `InteractiveOrb`. These provide simple 3D user interface elements used by service visualisations.
 
 ## Current Features
 
@@ -78,25 +78,24 @@ Individual visualization classes reside under `src/Services/Visual`.
 
 ## Proposed Repository Reorganization
 
-To simplify cross platform builds the repository may be reorganized under a `src/`
-layout:
+The repository uses a `src/` layout:
 
 ```
 FinalStorm/
   CMakeLists.txt
   src/
-    Core/            -> from Shared/Core/
-    Scene/           -> from Shared/Scene/
-    Rendering/       -> from Shared/Renderer/ plus MetalRenderer/*
-    UI/              -> from Shared/UI3D/
-    Platform/macOS/  -> from macOS/
-    Platform/iOS/    -> from iOS/
+    Core/
+    Scene/
+    Rendering/
+    UI/
+    Platform/macOS/
+    Platform/iOS/
     main.cpp         -> shared entry from macOS/main.mm and iOS/main.mm
 
 A top level `FinalStormApp.cpp` would construct the renderer and drive the
 platform layer. Common Metal shaders could live in `shaders/FinalStorm.metal`.
 
-One of states of project structure is:
+Current project structure:
 ```
 FinalStorm/
 ├── CMakeLists.txt
