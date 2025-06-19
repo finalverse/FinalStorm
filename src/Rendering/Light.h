@@ -1,4 +1,4 @@
-// Renderer/Light.h
+// Rendering/Light.h
 #pragma once
 
 #include "Core/MathTypes.h"
