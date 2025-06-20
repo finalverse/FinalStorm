@@ -110,7 +110,7 @@
             
             rot.columns[3] = simd_make_float4(0.0f, 0.0f, 0.0f, 1.0f);
             
-            return m * rot;
+            return simd_mul(m, rot);
         }
         
         inline mat4 lookAt(const vec3& eye, const vec3& center, const vec3& up) {
