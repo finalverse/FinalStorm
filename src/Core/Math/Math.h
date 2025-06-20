@@ -9,6 +9,7 @@
 
 #include <simd/simd.h>
 #include <cmath>
+#include "Core/Math/MathTypes.h"
 
 namespace FinalStorm {
 
@@ -51,6 +52,8 @@ private:
     float4x4 m_projectionMatrix;
 };
 
+namespace Math {
+
 // Math utilities
 float4x4 matrix_perspective_right_hand(float fovyRadians, float aspect, float nearZ, float farZ);
 float4x4 matrix_look_at_right_hand(float3 eye, float3 center, float3 up);
@@ -86,5 +89,7 @@ inline quat quaternion(float angle, const float3& axis) {
     return glm::angleAxis(angle, axis);
 #endif
 }
+
+} // namespace Math
 
 } // namespace FinalStorm
