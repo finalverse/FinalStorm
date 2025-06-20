@@ -1,21 +1,37 @@
-#include "UI/UI3DPanel.h"
-#include "Rendering/Renderer.h"
+// src/UI/Panel.cpp
+// Basic UI panel implementation
+// Foundation for 2D UI elements in 3D space
+
+#include "UI/Panel.h"
+#include "Rendering/RenderContext.h"
 
 namespace FinalStorm {
 
-Panel::Panel(uint32_t width, uint32_t height)
-    : m_width(width), m_height(height) {}
-
-void Panel::render(Renderer* renderer)
-{
-    if (!renderer) return;
-    float4x4 model = matrix_identity();
-    renderer->drawMesh(m_textureName, model);
+Panel::Panel(float w, float h)
+    : SceneNode("Panel")
+    , width(w)
+    , height(h)
+    , backgroundColor(0.1f, 0.1f, 0.2f, 0.8f)
+    , borderColor(0.2f, 0.8f, 1.0f, 1.0f)
+    , showBorder(true) {
 }
 
-void Panel::activate()
-{
-    if (m_onActivate) m_onActivate();
+Panel::~Panel() = default;
+
+void Panel::onRender(RenderContext& context) {
+    context.pushTransform(getWorldMatrix());
+    
+    // Draw background
+    context.setColor(backgroundColor);
+    context.drawQuad(width, height);
+    
+    // Draw border if enabled
+    if (showBorder) {
+        context.setColor(borderColor);
+        context.drawWireframeQuad(width, height);
+    }
+    
+    context.popTransform();
 }
 
 } // namespace FinalStorm

@@ -137,25 +137,25 @@ FinalStorm/
 │   │   │   ├── InputTypes.h
 │   │   │   └── GestureRecognizer.h
 │   │   │
-│   │   ├── Math/
-│   │   │   ├── Math.cpp
-│   │   │   ├── Math.h            # Internal math header
-│   │   │   ├── Transform.cpp
-│   │   │   └── Transform.h       # Internal transform header
-│   │   │
-│   │   ├── Network/
-│   │   │   ├── FinalverseClient.cpp
-│   │   │   ├── FinalverseClient.h  # Internal client header
-│   │   │   ├── MessageProtocol.cpp
-│   │   │   ├── MessageProtocol.h
-│   │   │   ├── ServiceDiscovery.cpp
-│   │   │   └── ServiceDiscovery.h
-│   │   │
-│   │   └── World/
-│   │       ├── Entity.cpp
-│   │       ├── Entity.h
-│   │       ├── WorldManager.cpp
-│   │       └── WorldManager.h
+│   │   └─── Math/
+│   │       ├── Math.cpp
+│   │       ├── Math.h            # Internal math header
+│   │       ├── Transform.cpp
+│   │       └── Transform.h       # Internal transform header
+│   │   
+│   ├── Network/
+│   │   ├── FinalverseClient.cpp
+│   │   ├── FinalverseClient.h    # Internal client header
+│   │   ├── MessageProtocol.cpp
+│   │   ├── MessageProtocol.h
+│   │   ├── ServiceDiscovery.cpp
+│   │   └── ServiceDiscovery.h
+│   │   
+│   ├── World/
+│   │   ├── Entity.cpp
+│   │   ├── Entity.h
+│   │   ├── WorldManager.cpp
+│   │   └── WorldManager.h
 │   │
 │   ├── Scene/                     # Scene management
 │   │   ├── SceneManager.cpp       # Main scene manager
@@ -231,7 +231,7 @@ FinalStorm/
 │   │       ├── MetalTexture.mm
 │   │       └── MetalShaderTypes.h
 │   │
-│   ├── Visualization/             # Data visualization
+│   ├── Visual/                    # Data visualization
 │   │   ├── DataVisualizer.cpp
 │   │   ├── DataVisualizer.h
 │   │   ├── GraphRenderer.cpp
@@ -258,14 +258,14 @@ FinalStorm/
 │           ├── Info.plist
 │           ├── FinalStorm.entitlements
 │           └── main.mm
-├── shaders/                       # Shader files
+├── shaders/                      # Shader files
 │   ├── Common.metal              # Common shader functions
 │   ├── Service.metal             # Service visualization shaders
 │   ├── Environment.metal         # Environment shaders
 │   ├── UI.metal                  # UI shaders
 │   ├── Particles.metal           # Particle shaders
 │   └── PostProcess.metal         # Post-processing shaders
-├── assets/                        # Asset files
+├── assets/                       # Asset files
 │   ├── textures/
 │   │   ├── skybox/
 │   │   ├── particles/
@@ -277,5 +277,5 @@ FinalStorm/
 │   ├── Scene/
 │   └── Services/
 └── external/                      # Third-party dependencies
-    └── glm/                      # If not using system GLM
+    └── glm/                       # If not using system GLM
 ```
