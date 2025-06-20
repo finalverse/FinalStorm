@@ -3,7 +3,7 @@
 // Common types for input handling
 
 #pragma once
-#include "Core/Math/MathTypes.h"
+#include "Core/MathTypes.h"
 
 namespace FinalStorm {
 

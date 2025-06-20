@@ -3,7 +3,7 @@
 // Manages view and projection matrices
 
 #pragma once
-#include "Core/Math/MathTypes.h"
+#include "Core/MathTypes.h"
 #include "Core/Math/Transform.h"
 
 namespace FinalStorm {
