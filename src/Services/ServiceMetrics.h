@@ -4,6 +4,7 @@
 
 #pragma once
 #include <cstdint>
+#include <string>
 
 namespace FinalStorm {
 
@@ -22,6 +23,13 @@ struct ServiceMetrics {
         , averageLatency(0)
         , errorRate(0)
         , activeConnections(0) {}
+        
+    // Utility functions
+    static ServiceMetrics lerp(const ServiceMetrics& a, const ServiceMetrics& b, float t);
+    float getHealthScore() const;
+    float getActivityScore() const;
+    bool isHealthy() const;
+    std::string toString() const;
 };
 
 } // namespace FinalStorm

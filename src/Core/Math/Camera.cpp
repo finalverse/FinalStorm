@@ -9,10 +9,10 @@
 namespace FinalStorm {
 
 Camera::Camera()
-    : position(0.0f, 0.0f, 5.0f)
-    , target(0.0f, 0.0f, 0.0f)
-    , up(0.0f, 1.0f, 0.0f)
-    , fov(Math::radians(45.0f))
+    : position(make_vec3(0.0f, 0.0f, 5.0f))
+    , target(make_vec3(0.0f, 0.0f, 0.0f))
+    , up(make_vec3(0.0f, 1.0f, 0.0f))
+    , fov(radians(45.0f))
     , aspectRatio(16.0f / 9.0f)
     , nearPlane(0.1f)
     , farPlane(1000.0f)
@@ -20,22 +20,22 @@ Camera::Camera()
     , projectionDirty(true) {
 }
 
-void Camera::setPosition(const float3& pos) {
+void Camera::setPosition(const vec3& pos) {
     position = pos;
     viewDirty = true;
 }
 
-void Camera::setTarget(const float3& tgt) {
+void Camera::setTarget(const vec3& tgt) {
     target = tgt;
     viewDirty = true;
 }
 
-void Camera::setUp(const float3& upVec) {
+void Camera::setUp(const vec3& upVec) {
     up = upVec;
     viewDirty = true;
 }
 
-void Camera::lookAt(const float3& pos, const float3& tgt, const float3& upVec) {
+void Camera::lookAt(const vec3& pos, const vec3& tgt, const vec3& upVec) {
     position = pos;
     target = tgt;
     up = upVec;
@@ -58,37 +58,37 @@ void Camera::setNearFar(float near, float far) {
     projectionDirty = true;
 }
 
-float4x4 Camera::getViewMatrix() const {
+mat4 Camera::getViewMatrix() const {
     if (viewDirty) {
         updateViewMatrix();
     }
     return viewMatrix;
 }
 
-float4x4 Camera::getProjectionMatrix() const {
+mat4 Camera::getProjectionMatrix() const {
     if (projectionDirty) {
         updateProjectionMatrix();
     }
     return projectionMatrix;
 }
 
-float4x4 Camera::getViewProjectionMatrix() const {
-    return getProjectionMatrix() * getViewMatrix();
+mat4 Camera::getViewProjectionMatrix() const {
+    return simd_mul(getProjectionMatrix(), getViewMatrix());
 }
 
-float3 Camera::getForward() const {
-    return Math::normalize(target - position);
+vec3 Camera::getForward() const {
+    return normalize(target - position);
 }
 
-float3 Camera::getRight() const {
-    return Math::normalize(Math::cross(getForward(), up));
+vec3 Camera::getRight() const {
+    return normalize(cross(getForward(), up));
 }
 
-float3 Camera::getUp() const {
-    return Math::normalize(Math::cross(getRight(), getForward()));
+vec3 Camera::getUp() const {
+    return normalize(cross(getRight(), getForward()));
 }
 
-void Camera::move(const float3& delta) {
+void Camera::move(const vec3& delta) {
     position += delta;
     target += delta;
     viewDirty = true;
@@ -96,35 +96,35 @@ void Camera::move(const float3& delta) {
 
 void Camera::rotate(float yaw, float pitch) {
     // Get the current forward and right vectors
-    float3 forward = getForward();
-    float3 right = getRight();
+    vec3 forward = getForward();
+    vec3 right = getRight();
     
     // Create rotation quaternions
-    quaternion yawRotation = quaternion(yaw, float3(0, 1, 0));
-    quaternion pitchRotation = quaternion(pitch, right);
+    quat yawRotation = simd_quaternion(yaw, make_vec3(0, 1, 0));
+    quat pitchRotation = simd_quaternion(pitch, right);
     
     // Apply rotations
-    quaternion totalRotation = yawRotation * pitchRotation;
+    quat totalRotation = simd_mul(yawRotation, pitchRotation);
     
     // Rotate forward vector
-    float4x4 rotMatrix = Transform::quaternionToMatrix(totalRotation);
-    float4 rotatedForward = rotMatrix * float4(forward.x, forward.y, forward.z, 0.0f);
+    mat4 rotMatrix = simd_matrix4x4(totalRotation);
+    vec4 rotatedForward = simd_mul(rotMatrix, make_vec4(forward.x, forward.y, forward.z, 0.0f));
     
     // Update target
-    target = position + float3(rotatedForward.x, rotatedForward.y, rotatedForward.z);
+    target = position + make_vec3(rotatedForward.x, rotatedForward.y, rotatedForward.z);
     viewDirty = true;
 }
 
 void Camera::zoom(float delta) {
-    float3 forward = getForward();
+    vec3 forward = getForward();
     position += forward * delta;
     viewDirty = true;
 }
 
-bool Camera::isInFrustum(const float3& point) const {
+bool Camera::isInFrustum(const vec3& point) const {
     // Simple frustum test - can be expanded for full frustum culling
-    float4x4 vp = getViewProjectionMatrix();
-    float4 clipSpace = vp * float4(point.x, point.y, point.z, 1.0f);
+    mat4 vp = getViewProjectionMatrix();
+    vec4 clipSpace = simd_mul(vp, make_vec4(point.x, point.y, point.z, 1.0f));
     
     // Perspective divide
     if (clipSpace.w != 0) {
@@ -140,12 +140,12 @@ bool Camera::isInFrustum(const float3& point) const {
 }
 
 void Camera::updateViewMatrix() const {
-    viewMatrix = Math::lookAt(position, target, up);
+    viewMatrix = lookAt(position, target, up);
     viewDirty = false;
 }
 
 void Camera::updateProjectionMatrix() const {
-    projectionMatrix = Math::perspective(fov, aspectRatio, nearPlane, farPlane);
+    projectionMatrix = perspective(fov, aspectRatio, nearPlane, farPlane);
     projectionDirty = false;
 }
 

@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "Core/Math/Math.h"
-#include "Core/Math/Transform.h"  // Add this include
+#include "Core/Math/MathTypes.h"
+#include "Core/Math/Transform.h"
 #include <string>
 #include <memory>
 #include <vector>
@@ -32,30 +32,33 @@ enum class AIState {
 
 class Entity {
 public:
-    Entity(uint64_t id, EntityType type);
-    virtual ~Entity() = default;
+    Entity(EntityType type);
+    virtual ~Entity();
     
-    uint64_t getId() const { return m_id; }
-    EntityType getType() const { return m_type; }
+    uint32_t getId() const { return id; }
+    EntityType getType() const { return type; }
     
-    const Transform& getTransform() const { return m_transform; }
-    Transform& getTransform() { return m_transform; }
+    const Transform& getTransform() const { return transform; }
+    Transform& getTransform() { return transform; }
     
-    const std::string& getMeshName() const { return m_meshName; }
-    void setMeshName(const std::string& name) { m_meshName = name; }
+    const std::string& getMeshName() const { return meshName; }
+    void setMeshName(const std::string& name) { meshName = name; }
     
-    bool isVisible() const { return m_visible; }
-    void setVisible(bool visible) { m_visible = visible; }
+    bool isActive() const { return active; }
+    void setActive(bool isActive) { active = isActive; }
     
     virtual void update(float deltaTime);
-    bool isInFrustum(const float4x4& viewProjectionMatrix) const;
+    bool isInFrustum(const mat4& viewProjectionMatrix) const;
     
 protected:
-    uint64_t m_id;
-    EntityType m_type;
-    Transform m_transform;
-    std::string m_meshName;
-    bool m_visible;
+    uint32_t id;
+    EntityType type;
+    Transform transform;
+    std::string meshName;
+    bool active;
+    
+private:
+    static uint32_t nextId;
 };
 
 using EntityPtr = std::shared_ptr<Entity>;
@@ -63,39 +66,39 @@ using EntityPtr = std::shared_ptr<Entity>;
 // Player Entity
 class PlayerEntity : public Entity {
 public:
-    PlayerEntity(uint64_t id);
+    PlayerEntity();
     
     void update(float deltaTime) override;
-    void move(const float3& direction);
+    void move(const vec3& direction);
     
-    float getHealth() const { return m_health; }
-    void setHealth(float health) { m_health = health; }
+    float getHealth() const { return health; }
+    void setHealth(float health) { this->health = health; }
     
 private:
-    float m_health;
-    float m_moveSpeed;
-    float3 m_velocity;
+    float health;
+    float moveSpeed;
+    vec3 velocity;
 };
 
 // NPC Entity
 class NPCEntity : public Entity {
 public:
-    NPCEntity(uint64_t id, const std::string& npcType);
+    NPCEntity(const std::string& npcType);
     
     void update(float deltaTime) override;
     
-    const std::string& getNPCType() const { return m_npcType; }
-    AIState getAIState() const { return m_aiState; }
-    void setAIState(AIState state) { m_aiState = state; }
+    const std::string& getNPCType() const { return npcType; }
+    AIState getAIState() const { return aiState; }
+    void setAIState(AIState state) { aiState = state; }
     
-    void addPatrolPoint(const float3& point) { m_patrolPath.push_back(point); }
+    void addPatrolPoint(const vec3& point) { patrolPath.push_back(point); }
     
 private:
-    std::string m_npcType;
-    AIState m_aiState;
-    std::vector<float3> m_patrolPath;
-    size_t m_currentPatrolIndex;
-    uint64_t m_targetId;
+    std::string npcType;
+    AIState aiState;
+    std::vector<vec3> patrolPath;
+    size_t currentPatrolIndex;
+    uint32_t targetId;
 };
 
 } // namespace FinalStorm

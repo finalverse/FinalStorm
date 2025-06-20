@@ -14,10 +14,10 @@ public:
     ~Camera() = default;
     
     // Position and orientation
-    void setPosition(const float3& position);
-    void setTarget(const float3& target);
-    void setUp(const float3& up);
-    void lookAt(const float3& position, const float3& target, const float3& up);
+    void setPosition(const vec3& position);
+    void setTarget(const vec3& target);
+    void setUp(const vec3& up);
+    void lookAt(const vec3& position, const vec3& target, const vec3& up);
     
     // Projection parameters
     void setFOV(float fovRadians);
@@ -25,40 +25,40 @@ public:
     void setNearFar(float nearPlane, float farPlane);
     
     // Getters
-    float3 getPosition() const { return position; }
-    float3 getTarget() const { return target; }
-    float3 getUp() const { return up; }
+    vec3 getPosition() const { return position; }
+    vec3 getTarget() const { return target; }
+    vec3 getUp() const { return up; }
     float getFOV() const { return fov; }
     float getAspectRatio() const { return aspectRatio; }
     float getNearPlane() const { return nearPlane; }
     float getFarPlane() const { return farPlane; }
     
     // Matrix getters
-    float4x4 getViewMatrix() const;
-    float4x4 getProjectionMatrix() const;
-    float4x4 getViewProjectionMatrix() const;
+    mat4 getViewMatrix() const;
+    mat4 getProjectionMatrix() const;
+    mat4 getViewProjectionMatrix() const;
     
     // Utility
-    float3 getForward() const;
-    float3 getRight() const;
-    float3 getUp() const;
+    vec3 getForward() const;
+    vec3 getRight() const;
+    vec3 getUp() const;
     
     // Movement
-    void move(const float3& delta);
+    void move(const vec3& delta);
     void rotate(float yaw, float pitch);
     void zoom(float delta);
     
     // Frustum culling
-    bool isInFrustum(const float3& point) const;
+    bool isInFrustum(const vec3& point) const;
     
 private:
     void updateViewMatrix() const;
     void updateProjectionMatrix() const;
     
     // Camera properties
-    float3 position;
-    float3 target;
-    float3 up;
+    vec3 position;
+    vec3 target;
+    vec3 up;
     
     // Projection properties
     float fov;
@@ -67,8 +67,8 @@ private:
     float farPlane;
     
     // Cached matrices
-    mutable float4x4 viewMatrix;
-    mutable float4x4 projectionMatrix;
+    mutable mat4 viewMatrix;
+    mutable mat4 projectionMatrix;
     mutable bool viewDirty;
     mutable bool projectionDirty;
 };

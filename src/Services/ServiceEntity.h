@@ -1,6 +1,7 @@
 #pragma once
 
 #include "World/Entity.h"
+#include "Services/ServiceMetrics.h"
 #include <string>
 #include <memory>
 
@@ -19,7 +20,9 @@ public:
         COMMUNITY,
         SILENCE_SERVICE,
         PROCEDURAL_GEN,
-        BEHAVIOR_AI
+        BEHAVIOR_AI,
+        WEBSOCKET_GATEWAY,
+        DATABASE
     };
 
     struct ServiceInfo {
@@ -30,27 +33,29 @@ public:
         bool isHealthy = true;
     };
 
-    struct ServiceMetrics {
-        float cpuUsage = 0.0f;
-        float memoryUsage = 0.0f;
-        int activeConnections = 0;
-        float responseTime = 0.0f;
-        float requestsPerSecond = 0.0f;
-    };
-
-    ServiceEntity(uint64_t id, const ServiceInfo& info);
+    ServiceEntity(const ServiceInfo& info);
+    virtual ~ServiceEntity() = default;
 
     void updateMetrics(const ServiceMetrics& metrics);
     void update(float deltaTime) override;
 
-    const ServiceInfo& getInfo() const { return m_info; }
-    const ServiceMetrics& getMetrics() const { return m_metrics; }
-    float getActivityLevel() const { return m_activityLevel; }
+    const ServiceInfo& getInfo() const { return serviceInfo; }
+    const ServiceMetrics& getMetrics() const { return metrics; }
+    float getActivityLevel() const { return activityLevel; }
+    float getHealthLevel() const { return healthLevel; }
+
+    ServiceType getServiceType() const { return serviceInfo.type; }
+
+protected:
+    virtual void updateVisuals();
+    virtual void updateAnimation(float deltaTime);
 
 private:
-    ServiceInfo m_info;
-    ServiceMetrics m_metrics;
-    float m_activityLevel;
+    ServiceInfo serviceInfo;
+    ServiceMetrics metrics;
+    float activityLevel;
+    float healthLevel;
+    float animationTime;
 };
 
 using ServiceEntityPtr = std::shared_ptr<ServiceEntity>;
