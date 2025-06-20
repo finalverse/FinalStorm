@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup_build.sh
+# build_setup.sh
 # Build setup script for FinalStorm
 # Creates build directory and runs CMake
 
@@ -35,3 +35,4 @@ else
     echo "Build setup failed!"
     exit 1
 fi
+

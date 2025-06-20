@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# xcodegen.sh - generate a multi-platform Xcode project
+
 echo "Setting up FinalStorm Xcode project..."
 
 # Clean previous builds
