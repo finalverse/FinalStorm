@@ -5,8 +5,21 @@
 
 SHADER_DIR="./shaders"
 OUTPUT_DIR="./shaders/compiled"
-PLATFORM="macosx"  # or "ios" for iOS
+PLATFORM="macosx"
 IOS_PLATFORM="iphoneos"
+COMPILE_MAC=true
+COMPILE_IOS=true
+
+for arg in "$@"; do
+    case $arg in
+        --ios-only)
+            COMPILE_MAC=false
+            ;;
+        --mac-only)
+            COMPILE_IOS=false
+            ;;
+    esac
+done
 
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
@@ -54,26 +67,26 @@ compile_shader() {
     fi
 }
 
-# Compile all shaders for macOS
-echo "Compiling for macOS..."
-success_count=0
-fail_count=0
+if $COMPILE_MAC; then
+    echo "Compiling for macOS..."
+    success_count=0
+    fail_count=0
 
-for shader in "$SHADER_DIR"/*.metal; do
-    if [ -f "$shader" ]; then
-        compile_shader "$shader" "$PLATFORM" "macos"
-        if [ $? -eq 0 ]; then
-            ((success_count++))
-        else
-            ((fail_count++))
+    for shader in "$SHADER_DIR"/*.metal; do
+        if [ -f "$shader" ]; then
+            compile_shader "$shader" "$PLATFORM" "macos"
+            if [ $? -eq 0 ]; then
+                ((success_count++))
+            else
+                ((fail_count++))
+            fi
         fi
-    fi
-done
+    done
 
-echo "macOS: ✓ $success_count, ✗ $fail_count"
+    echo "macOS: ✓ $success_count, ✗ $fail_count"
+fi
 
-# Compile all shaders for iOS (optional)
-if [ "$1" == "--ios" ] || [ "$1" == "--all" ]; then
+if $COMPILE_IOS; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "Compiling for iOS..."
     ios_success_count=0
@@ -115,13 +128,11 @@ if [ $fail_count -eq 0 ]; then
     fi
     
     # For iOS if compiled
-    if [ "$1" == "--ios" ] || [ "$1" == "--all" ]; then
-        if [ $ios_fail_count -eq 0 ]; then
-            xcrun -sdk $IOS_PLATFORM metallib "$OUTPUT_DIR/ios"/*.air -o "$OUTPUT_DIR/ios/FinalStorm.metallib" 2> "$OUTPUT_DIR/ios/unified.log"
-            if [ $? -eq 0 ]; then
-                echo "iOS unified library: $OUTPUT_DIR/ios/FinalStorm.metallib"
-                rm "$OUTPUT_DIR/ios/unified.log"
-            fi
+    if $COMPILE_IOS && [ $ios_fail_count -eq 0 ]; then
+        xcrun -sdk $IOS_PLATFORM metallib "$OUTPUT_DIR/ios"/*.air -o "$OUTPUT_DIR/ios/FinalStorm.metallib" 2> "$OUTPUT_DIR/ios/unified.log"
+        if [ $? -eq 0 ]; then
+            echo "iOS unified library: $OUTPUT_DIR/ios/FinalStorm.metallib"
+            rm "$OUTPUT_DIR/ios/unified.log"
         fi
     fi
 else
@@ -134,3 +145,5 @@ fi
 # rm -f "$OUTPUT_DIR/ios"/*.air
 
 exit 0
+
+
