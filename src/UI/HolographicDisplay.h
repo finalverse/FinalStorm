@@ -1,22 +1,28 @@
-#pragma once
+// src/UI/HolographicDisplay.h
+// Holographic display UI element
+// Provides futuristic data visualization
 
-#include "Scene/SceneNode.h"
+#pragma once
 #include "UI/UI3DPanel.h"
-#include <memory>
 
 namespace FinalStorm {
 
-class HolographicDisplay : public SceneNode {
+class HolographicDisplay : public UI3DPanel {
 public:
-    HolographicDisplay(uint32_t width, uint32_t height);
-
-    Panel& getPanel() { return *m_panel; }
-
+    HolographicDisplay(float width = 2.0f, float height = 1.5f);
+    ~HolographicDisplay() override;
+    
+    void setTitle(const std::string& title) { this->title = title; }
+    void setData(const std::vector<float>& data) { this->data = data; }
+    
 protected:
-    void onRender(Renderer* renderer) override;
-
+    void onUpdate(float deltaTime) override;
+    void onRender(RenderContext& context) override;
+    
 private:
-    std::unique_ptr<Panel> m_panel;
+    std::string title;
+    std::vector<float> data;
+    float animationTime;
 };
 
 } // namespace FinalStorm

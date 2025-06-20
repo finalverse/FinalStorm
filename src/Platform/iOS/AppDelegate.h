@@ -1,16 +1,9 @@
-//
-//  AppDelegate.h
-//  FinalStorm-iOS
-//
-//  Created by Wenyan Qin on 2025-06-15.
-//
+// src/Platform/iOS/AppDelegate.h
+// iOS application delegate header
+// Handles application lifecycle events
 
 #import <UIKit/UIKit.h>
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
-
-@property (strong, nonatomic) UIWindow *window;
-
-
+@property (strong, nonatomic) UIWindow* window;
 @end
-

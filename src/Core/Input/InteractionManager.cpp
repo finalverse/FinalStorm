@@ -1,50 +1,90 @@
+// src/Core/Input/InteractionManager.cpp
+// Input and interaction handling implementation
+// Manages user input and object selection
+
 #include "Core/Input/InteractionManager.h"
-#include "Core/Math/Math.h"
-#include "Scene/SceneNode.h"
 #include "Core/Math/Math.h"
 
 namespace FinalStorm {
 
 InteractionManager::InteractionManager()
-    : m_lastPoint(simd_make_float2(0.0f, 0.0f)) {}
-
-void InteractionManager::handleTouchBegan(const float2& point, const float2& viewport)
-{
-    m_lastPoint = point;
-    (void)viewport;
+    : mousePosition(0, 0)
+    , lastMousePosition(0, 0)
+    , isDragging(false) {
 }
 
-void InteractionManager::handleTouchMoved(const float2& point, const float2& viewport)
-{
-    m_lastPoint = point;
-    (void)viewport;
+InteractionManager::~InteractionManager() = default;
+
+void InteractionManager::update(float deltaTime) {
+    // Update interaction state
+    if (hoveredObject) {
+        // Update hover effects
+    }
 }
 
-void InteractionManager::handleTouchEnded(const float2& point, const float2& viewport)
-{
-    m_lastPoint = point;
-    (void)viewport;
+void InteractionManager::handleEvent(const InputEvent& event) {
+    switch (event.type) {
+        case InputEventType::MouseDown:
+            handleMouseDown(event);
+            break;
+        case InputEventType::MouseUp:
+            handleMouseUp(event);
+            break;
+        case InputEventType::MouseMove:
+            handleMouseMove(event);
+            break;
+        case InputEventType::KeyDown:
+            handleKeyDown(event);
+            break;
+        case InputEventType::KeyUp:
+            handleKeyUp(event);
+            break;
+        default:
+            break;
+    }
 }
 
-void InteractionManager::handlePinch(float scale)
-{
-    (void)scale;
+void InteractionManager::handleMouseDown(const InputEvent& event) {
+    mousePosition = event.position;
+    lastMousePosition = mousePosition;
+    isDragging = true;
+    
+    // TODO: Implement ray casting for object selection
 }
 
-InteractionManager::Ray InteractionManager::screenPointToRay(const float2& point, const float2& viewport) const
-{
-    Ray ray{};
-    if (!m_camera) return ray;
+void InteractionManager::handleMouseUp(const InputEvent& event) {
+    isDragging = false;
+    
+    if (selectedObject) {
+        // Handle object click
+    }
+}
 
-    float2 ndc = simd_make_float2((2.0f * point.x / viewport.x) - 1.0f,
-                                  1.0f - (2.0f * point.y / viewport.y));
-    float4 clip = simd_make_float4(ndc.x, ndc.y, 1.0f, 1.0f);
-    float4 view = simd_mul(simd_inverse(m_camera->getProjectionMatrix()), clip);
-    view = simd_make_float4(view.x, view.y, 1.0f, 0.0f);
-    float4 world = simd_mul(simd_inverse(m_camera->getViewMatrix()), view);
-    ray.origin = m_camera->getPosition();
-    ray.direction = simd_normalize(simd_make_float3(world.x, world.y, world.z));
-    return ray;
+void InteractionManager::handleMouseMove(const InputEvent& event) {
+    lastMousePosition = mousePosition;
+    mousePosition = event.position;
+    
+    if (isDragging) {
+        // Handle camera rotation or object manipulation
+        float2 delta = mousePosition - lastMousePosition;
+        // TODO: Apply delta to camera or selected object
+    }
+}
+
+void InteractionManager::handleKeyDown(const InputEvent& event) {
+    // Handle keyboard shortcuts
+    switch (event.keyCode) {
+        case 53: // ESC key
+            // Deselect object
+            selectedObject.reset();
+            break;
+        default:
+            break;
+    }
+}
+
+void InteractionManager::handleKeyUp(const InputEvent& event) {
+    // Handle key release
 }
 
 } // namespace FinalStorm

@@ -1,5 +1,8 @@
-#pragma once
+// src/UI/InteractiveOrb.h
+// Interactive orb UI element
+// Clickable 3D orb for user interaction
 
+#pragma once
 #include "Scene/SceneNode.h"
 #include <functional>
 
@@ -7,18 +10,25 @@ namespace FinalStorm {
 
 class InteractiveOrb : public SceneNode {
 public:
-    using ActivateCallback = std::function<void()>;
-
-    InteractiveOrb();
-
-    void setActivateCallback(ActivateCallback cb) { m_onActivate = cb; }
+    InteractiveOrb(float radius = 0.5f);
+    ~InteractiveOrb() override;
+    
+    void setOnActivate(std::function<void()> callback) { onActivate = callback; }
+    void setGlowColor(const float3& color) { glowColor = color; }
+    void setPulseSpeed(float speed) { pulseSpeed = speed; }
+    
     void activate();
-
+    
 protected:
-    void onRender(Renderer* renderer) override;
-
+    void onUpdate(float deltaTime) override;
+    void onRender(RenderContext& context) override;
+    
 private:
-    ActivateCallback m_onActivate;
+    float radius;
+    float3 glowColor;
+    float pulseSpeed;
+    float pulsePhase;
+    std::function<void()> onActivate;
 };
 
 } // namespace FinalStorm

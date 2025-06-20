@@ -1,104 +1,66 @@
-//
-// SceneManager.cpp - Scene Management Implementation
-// FinalStorm 3D Client for Finalverse
-//
+// src/Scene/SceneManager.cpp
+// Scene management implementation
+// Handles scene updates, rendering, and camera control
 
-#include "SceneManager.h"
-#include "Scene.h"
-#include "../Rendering/Metal/MetalRenderer.h"
-#include <iostream>
+#include "Scene/SceneManager.h"
+#include "Scene/Scene.h"
+#include "Rendering/RenderContext.h"
+#include "Core/Math/Math.h"
 
 namespace FinalStorm {
 
-SceneManager::SceneManager() {
+SceneManager::SceneManager(std::shared_ptr<Scene> scn, std::shared_ptr<Renderer> rend)
+    : scene(scn)
+    , renderer(rend) {
+    
+    // Setup default camera
+    camera.setPosition(float3(0, 5, 10));
+    camera.lookAt(float3(0, 5, 10), float3(0, 0, 0), float3(0, 1, 0));
+    camera.setFOV(Math::radians(60.0f));
+    camera.setNearFar(0.1f, 1000.0f);
 }
 
-SceneManager::~SceneManager() {
-    clearAllScenes();
+SceneManager::~SceneManager() = default;
+
+void SceneManager::update(float deltaTime) {
+    if (scene) {
+        scene->update(deltaTime);
+    }
+    
+    // Update camera if needed
+    updateCamera(deltaTime);
 }
 
-void SceneManager::addScene(const std::string& name, std::shared_ptr<Scene> scene) {
-    if (!scene) {
-        std::cerr << "Warning: Attempted to add null scene with name: " << name << std::endl;
+void SceneManager::render() {
+    if (!scene || !renderer) {
         return;
     }
     
-    m_scenes[name] = scene;
-    scene->setName(name);
+    // Create render context
+    auto context = renderer->createRenderContext();
+    if (!context) {
+        return;
+    }
     
-    // If this is the first scene, make it current
-    if (!m_currentScene) {
-        m_currentScene = scene;
+    // Set view/projection matrices
+    renderer->setViewProjectionMatrix(camera.getViewMatrix(), camera.getProjectionMatrix());
+    
+    // Set camera info in context
+    context->setCamera(camera);
+    
+    // Render the scene
+    scene->render(*context);
+}
+
+void SceneManager::onResize(uint32_t width, uint32_t height) {
+    if (width > 0 && height > 0) {
+        float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
+        camera.setAspectRatio(aspectRatio);
     }
 }
 
-void SceneManager::removeScene(const std::string& name) {
-    auto it = m_scenes.find(name);
-    if (it != m_scenes.end()) {
-        // If we're removing the current scene, clear it
-        if (m_currentScene == it->second) {
-            m_currentScene.reset();
-        }
-        
-        m_scenes.erase(it);
-    }
-}
-
-std::shared_ptr<Scene> SceneManager::getScene(const std::string& name) const {
-    auto it = m_scenes.find(name);
-    return (it != m_scenes.end()) ? it->second : nullptr;
-}
-
-void SceneManager::setCurrentScene(std::shared_ptr<Scene> scene) {
-    if (scene) {
-        m_currentScene = scene;
-        
-        // Make sure the scene is in our collection
-        bool found = false;
-        for (const auto& pair : m_scenes) {
-            if (pair.second == scene) {
-                found = true;
-                break;
-            }
-        }
-        
-        if (!found) {
-            // Add it with a default name
-            std::string sceneName = scene->getName();
-            if (sceneName.empty()) {
-                sceneName = "Scene_" + std::to_string(m_scenes.size());
-            }
-            addScene(sceneName, scene);
-        }
-    } else {
-        m_currentScene.reset();
-    }
-}
-
-void SceneManager::setCurrentScene(const std::string& name) {
-    auto scene = getScene(name);
-    if (scene) {
-        m_currentScene = scene;
-    } else {
-        std::cerr << "Warning: Scene '" << name << "' not found!" << std::endl;
-    }
-}
-
-void SceneManager::update(float deltaTime) {
-    if (m_currentScene) {
-        m_currentScene->update(deltaTime);
-    }
-}
-
-void SceneManager::render(MetalRenderer& renderer) {
-    if (m_currentScene) {
-        m_currentScene->render(renderer);
-    }
-}
-
-void SceneManager::clearAllScenes() {
-    m_currentScene.reset();
-    m_scenes.clear();
+void SceneManager::updateCamera(float deltaTime) {
+    // Camera animation or user control can be implemented here
 }
 
 } // namespace FinalStorm

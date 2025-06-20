@@ -1,193 +1,195 @@
-//
-//  Math.cpp
-//  FinalStorm
-//
-//  Created by Wenyan Qin on 2025-06-15.
-//
+// src/Core/Math/Math.cpp
+// Core math utilities implementation
+// Provides platform-agnostic math operations using the types defined in MathTypes.h
 
 #include "Core/Math/Math.h"
-#include "Core/Math/Transform.h"
+#include <cmath>
+#include <algorithm>
 
 namespace FinalStorm {
+namespace Math {
 
-// Transform implementation
-float4x4 Transform::getMatrix() const {
-    float4x4 T = matrix_translation(position);
-    float4x4 R = matrix_rotation(rotation);
-    float4x4 S = matrix_scale(scale);
-    return simd_mul(simd_mul(T, R), S);
+float radians(float degrees) {
+    return degrees * (M_PI / 180.0f);
 }
 
-void Transform::setRotationFromEuler(float pitch, float yaw, float roll) {
-    float cy = cosf(yaw * 0.5f);
-    float sy = sinf(yaw * 0.5f);
-    float cp = cosf(pitch * 0.5f);
-    float sp = sinf(pitch * 0.5f);
-    float cr = cosf(roll * 0.5f);
-    float sr = sinf(roll * 0.5f);
-    
-    rotation.w = cr * cp * cy + sr * sp * sy;
-    rotation.x = sr * cp * cy - cr * sp * sy;
-    rotation.y = cr * sp * cy + sr * cp * sy;
-    rotation.z = cr * cp * sy - sr * sp * cy;
+float degrees(float radians) {
+    return radians * (180.0f / M_PI);
 }
 
-float3 Transform::getForward() const {
-    float4x4 rotMatrix = matrix_rotation(rotation);
-    return -simd_make_float3(rotMatrix.columns[2].x, rotMatrix.columns[2].y, rotMatrix.columns[2].z);
+float clamp(float value, float min, float max) {
+    return std::max(min, std::min(max, value));
 }
 
-float3 Transform::getRight() const {
-    float4x4 rotMatrix = matrix_rotation(rotation);
-    return simd_make_float3(rotMatrix.columns[0].x, rotMatrix.columns[0].y, rotMatrix.columns[0].z);
+float lerp(float a, float b, float t) {
+    return a + (b - a) * t;
 }
 
-float3 Transform::getUp() const {
-    float4x4 rotMatrix = matrix_rotation(rotation);
-    return simd_make_float3(rotMatrix.columns[1].x, rotMatrix.columns[1].y, rotMatrix.columns[1].z);
+float smoothstep(float edge0, float edge1, float x) {
+    x = clamp((x - edge0) / (edge1 - edge0), 0.0f, 1.0f);
+    return x * x * (3.0f - 2.0f * x);
 }
 
-Transform Transform::lerp(const Transform& a, const Transform& b, float t) {
-    Transform result;
-    result.position = simd_mix(a.position, b.position, t);
-    result.scale = simd_mix(a.scale, b.scale, t);
+#ifdef USE_SIMD
+
+float3 normalize(const float3& v) {
+    return simd_normalize(v);
+}
+
+float dot(const float3& a, const float3& b) {
+    return simd_dot(a, b);
+}
+
+float3 cross(const float3& a, const float3& b) {
+    return simd_cross(a, b);
+}
+
+float length(const float3& v) {
+    return simd_length(v);
+}
+
+float4x4 inverse(const float4x4& m) {
+    return simd_inverse(m);
+}
+
+float4x4 transpose(const float4x4& m) {
+    return simd_transpose(m);
+}
+
+float4x4 lookAt(const float3& eye, const float3& center, const float3& up) {
+    float3 f = normalize(center - eye);
+    float3 s = normalize(cross(f, up));
+    float3 u = cross(s, f);
     
-    // Quaternion slerp
-    float dot = simd_dot(a.rotation, b.rotation);
-    float4 q2 = b.rotation;
+    float4x4 result = float4x4(
+        float4(s.x, u.x, -f.x, 0.0f),
+        float4(s.y, u.y, -f.y, 0.0f),
+        float4(s.z, u.z, -f.z, 0.0f),
+        float4(-dot(s, eye), -dot(u, eye), dot(f, eye), 1.0f)
+    );
     
-    if (dot < 0.0f) {
-        q2 = -b.rotation;
-        dot = -dot;
-    }
+    return transpose(result);
+}
+
+float4x4 perspective(float fovy, float aspect, float near, float far) {
+    float y = 1.0f / tanf(fovy * 0.5f);
+    float x = y / aspect;
+    float z = far / (near - far);
     
-    if (dot > 0.9995f) {
-        result.rotation = simd_normalize(simd_mix(a.rotation, q2, t));
-    } else {
-        float theta = acosf(dot);
-        float sinTheta = sinf(theta);
-        float wa = sinf((1.0f - t) * theta) / sinTheta;
-        float wb = sinf(t * theta) / sinTheta;
-        result.rotation = a.rotation * wa + q2 * wb;
-    }
+    return float4x4(
+        float4(x, 0, 0, 0),
+        float4(0, y, 0, 0),
+        float4(0, 0, z, -1),
+        float4(0, 0, near * z, 0)
+    );
+}
+
+float4x4 ortho(float left, float right, float bottom, float top, float near, float far) {
+    float rl = 1.0f / (right - left);
+    float tb = 1.0f / (top - bottom);
+    float fn = 1.0f / (far - near);
     
+    return float4x4(
+        float4(2.0f * rl, 0, 0, 0),
+        float4(0, 2.0f * tb, 0, 0),
+        float4(0, 0, -1.0f * fn, 0),
+        float4(-(right + left) * rl, -(top + bottom) * tb, -near * fn, 1)
+    );
+}
+
+float4x4 translate(const float4x4& m, const float3& v) {
+    float4x4 result = m;
+    result.columns[3] = m.columns[0] * v.x + m.columns[1] * v.y + m.columns[2] * v.z + m.columns[3];
     return result;
 }
 
-// Camera implementation
-Camera::Camera() 
-    : m_position(simd_make_float3(0.0f, 0.0f, 5.0f)),
-      m_target(simd_make_float3(0.0f, 0.0f, 0.0f)),
-      m_up(simd_make_float3(0.0f, 1.0f, 0.0f)) {
-    updateViewMatrix();
-    setPerspective(60.0f * M_PI / 180.0f, 16.0f/9.0f, 0.1f, 1000.0f);
-}
-
-void Camera::setPerspective(float fov, float aspect, float nearPlane, float farPlane) {
-    m_projectionMatrix = matrix_perspective_right_hand(fov, aspect, nearPlane, farPlane);
-}
-
-void Camera::setOrthographic(float left, float right, float bottom, float top, float nearPlane, float farPlane) {
-    m_projectionMatrix = matrix_orthographic(left, right, bottom, top, nearPlane, farPlane);
-}
-
-void Camera::updateViewMatrix() {
-    m_viewMatrix = matrix_look_at_right_hand(m_position, m_target, m_up);
-}
-
-// Matrix functions
-float4x4 matrix_perspective_right_hand(float fovyRadians, float aspect, float nearZ, float farZ) {
-    float ys = 1 / tanf(fovyRadians * 0.5);
-    float xs = ys / aspect;
-    float zs = farZ / (nearZ - farZ);
+float4x4 rotate(const float4x4& m, float angle, const float3& axis) {
+    float c = cosf(angle);
+    float s = sinf(angle);
+    float3 a = normalize(axis);
+    float3 temp = (1.0f - c) * a;
     
-    return simd_matrix_from_rows(
-        simd_make_float4(xs, 0.0, 0.0, 0.0),
-        simd_make_float4(0.0, ys, 0.0, 0.0),
-        simd_make_float4(0.0, 0.0, zs, nearZ * zs),
-        simd_make_float4(0.0, 0.0, -1.0, 0.0)
-    );
-}
-
-float4x4 matrix_look_at_right_hand(float3 eye, float3 center, float3 up) {
-    float3 z = simd_normalize(eye - center);
-    float3 x = simd_normalize(simd_cross(up, z));
-    float3 y = simd_cross(z, x);
+    float4x4 rotation;
+    rotation.columns[0][0] = c + temp[0] * a[0];
+    rotation.columns[0][1] = temp[0] * a[1] + s * a[2];
+    rotation.columns[0][2] = temp[0] * a[2] - s * a[1];
+    rotation.columns[0][3] = 0;
     
-    return simd_matrix_from_rows(
-        simd_make_float4(x.x, x.y, x.z, -simd_dot(x, eye)),
-        simd_make_float4(y.x, y.y, y.z, -simd_dot(y, eye)),
-        simd_make_float4(z.x, z.y, z.z, -simd_dot(z, eye)),
-        simd_make_float4(0.0, 0.0, 0.0, 1.0)
-    );
-}
-
-float4x4 matrix_identity() {
-    return matrix_float4x4{{
-        {1.0, 0.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0, 0.0},
-        {0.0, 0.0, 1.0, 0.0},
-        {0.0, 0.0, 0.0, 1.0}
-    }};
-}
-
-float4x4 matrix_translation(float3 translation) {
-    float4x4 m = matrix_identity();
-    m.columns[3] = simd_make_float4(translation.x, translation.y, translation.z, 1.0);
-    return m;
-}
-
-float4x4 matrix_rotation(float4 quaternion) {
-    float qxx = quaternion.x * quaternion.x;
-    float qyy = quaternion.y * quaternion.y;
-    float qzz = quaternion.z * quaternion.z;
-    float qxz = quaternion.x * quaternion.z;
-    float qxy = quaternion.x * quaternion.y;
-    float qyz = quaternion.y * quaternion.z;
-    float qwx = quaternion.w * quaternion.x;
-    float qwy = quaternion.w * quaternion.y;
-    float qwz = quaternion.w * quaternion.z;
+    rotation.columns[1][0] = temp[1] * a[0] - s * a[2];
+    rotation.columns[1][1] = c + temp[1] * a[1];
+    rotation.columns[1][2] = temp[1] * a[2] + s * a[0];
+    rotation.columns[1][3] = 0;
     
-    float4x4 m;
-    m.columns[0] = simd_make_float4(1 - 2 * (qyy + qzz), 2 * (qxy + qwz), 2 * (qxz - qwy), 0);
-    m.columns[1] = simd_make_float4(2 * (qxy - qwz), 1 - 2 * (qxx + qzz), 2 * (qyz + qwx), 0);
-    m.columns[2] = simd_make_float4(2 * (qxz + qwy), 2 * (qyz - qwx), 1 - 2 * (qxx + qyy), 0);
-    m.columns[3] = simd_make_float4(0, 0, 0, 1);
+    rotation.columns[2][0] = temp[2] * a[0] + s * a[1];
+    rotation.columns[2][1] = temp[2] * a[1] - s * a[0];
+    rotation.columns[2][2] = c + temp[2] * a[2];
+    rotation.columns[2][3] = 0;
     
-    return m;
-}
-
-float4x4 matrix_scale(float3 scale) {
-    return matrix_float4x4{{
-        {scale.x, 0.0, 0.0, 0.0},
-        {0.0, scale.y, 0.0, 0.0},
-        {0.0, 0.0, scale.z, 0.0},
-        {0.0, 0.0, 0.0, 1.0}
-    }};
-}
-
-float3x3 matrix3x3_upper_left(const float4x4& m) {
-    return simd_matrix(
-        simd_make_float3(m.columns[0].x, m.columns[0].y, m.columns[0].z),
-        simd_make_float3(m.columns[1].x, m.columns[1].y, m.columns[1].z),
-        simd_make_float3(m.columns[2].x, m.columns[2].y, m.columns[2].z)
-    );
-}
-
-float4x4 matrix_orthographic(float left, float right, float bottom, float top, float nearZ, float farZ) {
-    float ral = right + left;
-    float rsl = right - left;
-    float tab = top + bottom;
-    float tsb = top - bottom;
-    float fan = farZ + nearZ;
-    float fsn = farZ - nearZ;
+    rotation.columns[3] = float4(0, 0, 0, 1);
     
-    return simd_matrix_from_rows(
-        simd_make_float4(2.0f / rsl, 0.0f, 0.0f, -ral / rsl),
-        simd_make_float4(0.0f, 2.0f / tsb, 0.0f, -tab / tsb),
-        simd_make_float4(0.0f, 0.0f, -2.0f / fsn, -fan / fsn),
-        simd_make_float4(0.0f, 0.0f, 0.0f, 1.0f)
-    );
+    return m * rotation;
 }
 
+float4x4 scale(const float4x4& m, const float3& v) {
+    float4x4 result;
+    result.columns[0] = m.columns[0] * v.x;
+    result.columns[1] = m.columns[1] * v.y;
+    result.columns[2] = m.columns[2] * v.z;
+    result.columns[3] = m.columns[3];
+    return result;
+}
+
+#else // GLM implementation
+
+float3 normalize(const float3& v) {
+    return glm::normalize(v);
+}
+
+float dot(const float3& a, const float3& b) {
+    return glm::dot(a, b);
+}
+
+float3 cross(const float3& a, const float3& b) {
+    return glm::cross(a, b);
+}
+
+float length(const float3& v) {
+    return glm::length(v);
+}
+
+float4x4 inverse(const float4x4& m) {
+    return glm::inverse(m);
+}
+
+float4x4 transpose(const float4x4& m) {
+    return glm::transpose(m);
+}
+
+float4x4 lookAt(const float3& eye, const float3& center, const float3& up) {
+    return glm::lookAt(eye, center, up);
+}
+
+float4x4 perspective(float fovy, float aspect, float near, float far) {
+    return glm::perspective(fovy, aspect, near, far);
+}
+
+float4x4 ortho(float left, float right, float bottom, float top, float near, float far) {
+    return glm::ortho(left, right, bottom, top, near, far);
+}
+
+float4x4 translate(const float4x4& m, const float3& v) {
+    return glm::translate(m, v);
+}
+
+float4x4 rotate(const float4x4& m, float angle, const float3& axis) {
+    return glm::rotate(m, angle, axis);
+}
+
+float4x4 scale(const float4x4& m, const float3& v) {
+    return glm::scale(m, v);
+}
+
+#endif
+
+} // namespace Math
 } // namespace FinalStorm

@@ -1,16 +1,9 @@
-//
-//  GameViewController.h
-//  FinalStorm-iOS
-//
-//  Created by Wenyan Qin on 2025-06-15.
-//
+// src/Platform/iOS/GameViewController.h
+// iOS game view controller header
+// Manages the Metal view and game loop
 
 #import <UIKit/UIKit.h>
-#import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
-#import "Rendering/Metal/MetalRenderer.h"
 
-// Our iOS view controller
-@interface GameViewController : UIViewController
-
+@interface GameViewController : UIViewController<MTKViewDelegate>
 @end

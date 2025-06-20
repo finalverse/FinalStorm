@@ -1,28 +1,47 @@
+// src/Services/ServiceEntity.cpp
+// Service entity base class implementation
+// Represents a Finalverse service as a 3D entity
+
 #include "Services/ServiceEntity.h"
-#include "Core/Math/Math.h"
+#include "Scene/SceneNode.h"
 
 namespace FinalStorm {
 
-ServiceEntity::ServiceEntity(uint64_t id, const ServiceInfo& info)
-    : Entity(id, EntityType::Object),
-      m_info(info),
-      m_activityLevel(0.0f)
-{
-    m_meshName = "service";
+ServiceEntity::ServiceEntity(ServiceType serviceType, const std::string& serviceName)
+    : SceneNode(serviceName)
+    , type(serviceType)
+    , health(1.0f)
+    , activityLevel(0.0f) {
 }
 
-void ServiceEntity::updateMetrics(const ServiceMetrics& metrics)
-{
-    m_metrics = metrics;
-    // Basic heuristic for activity level
-    m_activityLevel = (metrics.cpuUsage + metrics.memoryUsage) * 0.5f / 100.0f;
-    m_activityLevel = fmaxf(0.0f, fminf(1.0f, m_activityLevel));
+ServiceEntity::~ServiceEntity() = default;
+
+void ServiceEntity::updateMetrics(const ServiceMetrics& newMetrics) {
+    metrics = newMetrics;
+    
+    // Update visual properties based on metrics
+    health = 1.0f - (metrics.errorRate / 100.0f);
+    activityLevel = std::min(1.0f, metrics.requestsPerSecond / 1000.0f);
+    
+    // Update visuals
+    updateVisuals();
 }
 
-void ServiceEntity::update(float deltaTime)
-{
-    Entity::update(deltaTime);
-    (void)deltaTime; // placeholder for future animations based on activity
+void ServiceEntity::onUpdate(float deltaTime) {
+    // Base update - derived classes can override
+    updateAnimation(deltaTime);
+}
+
+void ServiceEntity::updateAnimation(float deltaTime) {
+    // Simple pulsing animation based on activity
+    float targetScale = 1.0f + activityLevel * 0.2f;
+    float3 currentScale = getLocalTransform().getScale();
+    float3 newScale = currentScale + (float3(targetScale) - currentScale) * deltaTime * 5.0f;
+    setScale(newScale);
+}
+
+void ServiceEntity::updateVisuals() {
+    // Derived classes implement specific visual updates
 }
 
 } // namespace FinalStorm

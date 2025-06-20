@@ -1,48 +1,61 @@
-// ServiceFactory.cpp - Implementation of service factory
+// src/Services/ServiceFactory.cpp
+// Service factory implementation
+// Creates appropriate visualizations for different service types
 
 #include "Services/ServiceFactory.h"
-#include "Services/Visual/APIGatewayViz.h"
-#include "Services/Visual/AIServiceViz.h"
-#include "Services/Visual/AudioServiceViz.h"
-#include "Services/Visual/WorldEngineViz.h"
-#include "Services/Visual/DatabaseViz.h"
-#include "Services/Visual/CommunityViz.h"
+#include "Services/ServiceEntity.h"
 
 namespace FinalStorm {
 
-std::unique_ptr<ServiceEntity> ServiceFactory::createService(ServiceEntity::ServiceType type) {
-    return createService(ServiceEntity::ServiceInfo::fromType(type));
-}
-
-std::unique_ptr<ServiceEntity> ServiceFactory::createService(const ServiceEntity::ServiceInfo& info) {
-    switch (info.type) {
-        case ServiceEntity::ServiceType::API_GATEWAY:
-            return std::make_unique<APIGatewayViz>();
-            
-        case ServiceEntity::ServiceType::AI_ORCHESTRA:
-        case ServiceEntity::ServiceType::BEHAVIOR_AI:
-            return std::make_unique<AIServiceViz>(info.type);
-            
-        case ServiceEntity::ServiceType::SONG_ENGINE:
-        case ServiceEntity::ServiceType::HARMONY_SERVICE:
-        case ServiceEntity::ServiceType::ECHO_ENGINE:
-        case ServiceEntity::ServiceType::SILENCE_SERVICE:
-            return std::make_unique<AudioServiceViz>(info.type);
-            
-        case ServiceEntity::ServiceType::WORLD_ENGINE:
-        case ServiceEntity::ServiceType::PROCEDURAL_GEN:
-            return std::make_unique<WorldEngineViz>();
-            
-        case ServiceEntity::ServiceType::DATABASE:
-            return std::make_unique<DatabaseViz>();
-            
-        case ServiceEntity::ServiceType::COMMUNITY:
-            return std::make_unique<CommunityViz>();
-            
-        case ServiceEntity::ServiceType::ASSET_SERVICE:
-        default:
-            return std::make_unique<ServiceEntity>(info);
+// Simple service entity for now - later we'll add specific visualizations
+class GenericServiceEntity : public ServiceEntity {
+public:
+    GenericServiceEntity(ServiceType type, const std::string& name)
+        : ServiceEntity(type, name) {}
+    
+    void onRender(RenderContext& context) override {
+        // Basic rendering - will be replaced with specific visualizations
+        context.pushTransform(getWorldMatrix());
+        
+        // Render a simple cube for now
+        float4 color(0.2f, 0.8f, 1.0f, 1.0f);
+        context.setColor(color * (0.5f + 0.5f * health));
+        context.drawCube(1.0f);
+        
+        context.popTransform();
     }
+};
+
+std::shared_ptr<ServiceEntity> ServiceFactory::createService(ServiceType type) {
+    std::string name;
+    
+    switch (type) {
+        case ServiceType::APIGateway:
+            name = "API Gateway";
+            break;
+        case ServiceType::WebSocket:
+            name = "WebSocket Gateway";
+            break;
+        case ServiceType::WorldEngine:
+            name = "World Engine";
+            break;
+        case ServiceType::AIService:
+            name = "AI Orchestra";
+            break;
+        case ServiceType::AudioService:
+            name = "Symphony Engine";
+            break;
+        case ServiceType::Database:
+            name = "Database";
+            break;
+        case ServiceType::Community:
+            name = "Community Service";
+            break;
+        default:
+            name = "Unknown Service";
+    }
+    
+    return std::make_shared<GenericServiceEntity>(type, name);
 }
 
 } // namespace FinalStorm
