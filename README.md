@@ -23,7 +23,7 @@ For an overview of the code layout see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.
 To generate the Xcode project run:
 
 ```bash
-./setup_xcode_project.sh
+./scripts/xcodegen.sh
 ```
 
 This script creates a `build` directory and produces `FinalStorm.xcodeproj`.
@@ -40,18 +40,18 @@ Adjust the SDK and verify the framework search paths do not reference
 For a bare CMake invocation you can also run:
 
 ```bash
-./generate_xcodeproj.sh
+./scripts/gen_xcode.sh
 ```
 
 See [docs/BUILD.md](docs/BUILD.md) for additional build information.
 
 ## Verifying the repository
 
-A helper script `verify_structure.sh` checks that all expected files are
+A helper script `check_structure.sh` checks that all expected files are
 present. Run it from the repository root:
 
 ```bash
-./verify_structure.sh
+./scripts/check_structure.sh
 ```
 
 ## License

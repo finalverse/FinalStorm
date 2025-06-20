@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Create Xcode project using CMake
+# gen_xcode.sh - create Xcode project using CMake
 echo "Setting up FinalStorm Xcode project..."
 
 # Clean previous builds

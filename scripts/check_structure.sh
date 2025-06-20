@@ -1,5 +1,5 @@
 #!/bin/bash
-# verify_structure.sh
+# check_structure.sh
 
 echo "Verifying FinalStorm project structure..."
 
@@ -52,3 +52,4 @@ if [ $missing -eq 0 ]; then
 else
     echo "❌ Missing $missing files. Please create them."
 fi
+

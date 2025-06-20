@@ -102,9 +102,12 @@ FinalStorm/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
-├── setup_xcode_project.sh
-├── generate_xcodeproj.sh
-├── verify_structure.sh
+├── scripts/                        # Helper scripts
+│   ├── build_setup.sh
+│   ├── check_structure.sh
+│   ├── compile_shaders.sh
+│   ├── gen_xcode.sh
+│   └── xcodegen.sh
 ├── docs/                           # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── API.md
