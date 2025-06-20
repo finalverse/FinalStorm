@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "../Core/Math/MathTypes.h"
+#include "../Core/MathTypes.h"
 
 namespace FinalStorm {
 
