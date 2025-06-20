@@ -78,4 +78,13 @@ inline float4 make_float4(float v) {
     return simd_make_float4(v, v, v, v);
 }
 
+// Simple helper to create a quaternion from angle and axis in radians.
+inline quat quaternion(float angle, const float3& axis) {
+#ifdef __APPLE__
+    return simd_quaternion(angle, axis);
+#else
+    return glm::angleAxis(angle, axis);
+#endif
+}
+
 } // namespace FinalStorm
