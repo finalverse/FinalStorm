@@ -3,7 +3,7 @@
 // Defines the common interface for all rendering backends
 
 #pragma once
-#include "Core/MathTypes.h"
+#include "Core/Math/MathTypes.h"
 #include <memory>
 
 namespace FinalStorm {

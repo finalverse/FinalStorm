@@ -1,16 +1,52 @@
 #!/bin/bash
-# build_setup.sh
-# Build setup script for FinalStorm
-# Creates build directory and runs CMake
+# build_setup.sh - unified project generation script
 
-echo "Setting up FinalStorm build..."
+set -e
 
-# Create build directory
+IOS=false
+CLEAN=false
+OPEN=false
+
+usage() {
+    echo "Usage: $0 [--ios] [--clean] [--open]"
+    echo "  --ios    Generate project for iOS (default macOS)"
+    echo "  --clean  Remove existing build directory before generating"
+    echo "  --open   Open the generated Xcode project"
+}
+
+for arg in "$@"; do
+    case $arg in
+        --ios)
+            IOS=true
+            ;;
+        --clean)
+            CLEAN=true
+            ;;
+        --open)
+            OPEN=true
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $arg"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+echo "Setting up FinalStorm project..."
+
+if $CLEAN; then
+    rm -rf build
+fi
+
 mkdir -p build
 cd build
 
-# Determine platform
-if [[ "$1" == "ios" ]]; then
+if $IOS; then
     echo "Configuring for iOS..."
     cmake -G Xcode -DBUILD_FOR_IOS=ON ..
 else
@@ -19,20 +55,12 @@ else
 fi
 
 if [ $? -eq 0 ]; then
-    echo ""
-    echo "Build setup complete!"
-    echo ""
-    echo "To build FinalStorm:"
-    echo "  1. Open build/FinalStorm.xcodeproj in Xcode"
-    echo "  2. Select FinalStorm target"
-    echo "  3. Select your device/simulator"
-    echo "  4. Build and run (Cmd+R)"
-    echo ""
-    echo "Or build from command line:"
-    echo "  cd build"
-    echo "  xcodebuild -scheme FinalStorm -configuration Debug"
+    echo "✅ Xcode project generated in build/FinalStorm.xcodeproj"
+    if $OPEN; then
+        open FinalStorm.xcodeproj
+    fi
 else
-    echo "Build setup failed!"
+    echo "❌ Build setup failed!"
     exit 1
 fi
 

@@ -3,7 +3,7 @@
 // Provides drawing commands for a frame
 
 #pragma once
-#include "Core/MathTypes.h"
+#include "Core/Math/MathTypes.h"
 #include <stack>
 
 namespace FinalStorm {

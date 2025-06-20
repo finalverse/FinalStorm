@@ -34,6 +34,7 @@ High Level Architecture
 |  - EnvironmentController & DataVisualizer               |
 |  - Input (InteractionManager)                           |
 +---------------------------------------------------------+
+```
 
 ## Core Modules
 
@@ -105,9 +106,7 @@ FinalStorm/
 ├── scripts/                        # Helper scripts
 │   ├── build_setup.sh
 │   ├── check_structure.sh
-│   ├── compile_shaders.sh
-│   ├── gen_xcode.sh
-│   └── xcodegen.sh
+│   └── compile_shaders.sh
 ├── docs/                           # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── API.md

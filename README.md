@@ -23,11 +23,12 @@ For an overview of the code layout see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.
 To generate the Xcode project run:
 
 ```bash
-./scripts/xcodegen.sh
+./scripts/build_setup.sh --clean --open
 ```
 
 This script creates a `build` directory and produces `FinalStorm.xcodeproj`.
-Open the project in Xcode to build and run the client.
+Pass `--ios` to configure an iOS build. The `--open` flag launches Xcode once
+generation completes.
 
 
 When opening the generated project, ensure the **FinalStorm-iOS** target
@@ -36,12 +37,6 @@ either *iPhoneOS* or *iPhoneSimulator*. If you see build errors such as
 `CVOpenGLESTexture.h` not found, the macOS SDK is selected by mistake.
 Adjust the SDK and verify the framework search paths do not reference
 `MacOSX.platform`.
-
-For a bare CMake invocation you can also run:
-
-```bash
-./scripts/gen_xcode.sh
-```
 
 See [docs/BUILD.md](docs/BUILD.md) for additional build information.
 
