@@ -53,6 +53,14 @@ void Transform::rotateEuler(const float3& eulerAngles) {
     rotate(rotZ * rotY * rotX);
 }
 
+void Transform::setRotationFromEuler(float pitch, float yaw, float roll) {
+    quaternion rotX = quaternion(Math::radians(pitch), float3(1, 0, 0));
+    quaternion rotY = quaternion(Math::radians(yaw), float3(0, 1, 0));
+    quaternion rotZ = quaternion(Math::radians(roll), float3(0, 0, 1));
+    rotation = rotZ * rotY * rotX;
+    isDirty = true;
+}
+
 float4x4 Transform::getMatrix() const {
     if (isDirty) {
         updateMatrix();
