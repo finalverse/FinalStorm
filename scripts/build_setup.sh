@@ -3,21 +3,26 @@
 
 set -e
 
-IOS=false
+IOS_ONLY=false
+MAC_ONLY=false
 CLEAN=false
 OPEN=false
 
 usage() {
-    echo "Usage: $0 [--ios] [--clean] [--open]"
-    echo "  --ios    Generate project for iOS (default macOS)"
-    echo "  --clean  Remove existing build directory before generating"
-    echo "  --open   Open the generated Xcode project"
+    echo "Usage: $0 [--ios-only] [--mac-only] [--clean] [--open]"
+    echo "  --ios-only Generate project only for iOS"
+    echo "  --mac-only Generate project only for macOS"
+    echo "  --clean    Remove existing build directory before generating"
+    echo "  --open     Open the generated Xcode project"
 }
 
 for arg in "$@"; do
     case $arg in
-        --ios)
-            IOS=true
+        --ios-only)
+            IOS_ONLY=true
+            ;;
+        --mac-only)
+            MAC_ONLY=true
             ;;
         --clean)
             CLEAN=true
@@ -46,12 +51,17 @@ fi
 mkdir -p build
 cd build
 
-if $IOS; then
-    echo "Configuring for iOS..."
-    cmake -G Xcode -DBUILD_FOR_IOS=ON ..
+cmake_args="-G Xcode"
+
+if $IOS_ONLY; then
+    echo "Configuring for iOS only..."
+    cmake $cmake_args -DBUILD_IOS_ONLY=ON ..
+elif $MAC_ONLY; then
+    echo "Configuring for macOS only..."
+    cmake $cmake_args -DBUILD_MAC_ONLY=ON ..
 else
-    echo "Configuring for macOS..."
-    cmake -G Xcode ..
+    echo "Configuring for macOS and iOS..."
+    cmake $cmake_args ..
 fi
 
 if [ $? -eq 0 ]; then
@@ -63,4 +73,6 @@ else
     echo "❌ Build setup failed!"
     exit 1
 fi
+
+
 

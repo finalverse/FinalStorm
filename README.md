@@ -26,17 +26,13 @@ To generate the Xcode project run:
 ./scripts/build_setup.sh --clean --open
 ```
 
-This script creates a `build` directory and produces `FinalStorm.xcodeproj`.
-Pass `--ios` to configure an iOS build. The `--open` flag launches Xcode once
-generation completes.
+This script creates a `build` directory and produces `FinalStorm.xcodeproj` with
+both macOS and iOS targets. The `--open` flag launches Xcode once generation
+completes. Use `--ios-only` or `--mac-only` if you want a single platform.
 
 
-When opening the generated project, ensure the **FinalStorm-iOS** target
-uses the iOS SDK. In Xcode's Build Settings, the **Base SDK** should be
-either *iPhoneOS* or *iPhoneSimulator*. If you see build errors such as
-`CVOpenGLESTexture.h` not found, the macOS SDK is selected by mistake.
-Adjust the SDK and verify the framework search paths do not reference
-`MacOSX.platform`.
+The project also includes a **Shaders** target which compiles all Metal shaders
+to verify they are valid for both platforms.
 
 See [docs/BUILD.md](docs/BUILD.md) for additional build information.
 
@@ -52,4 +48,5 @@ present. Run it from the repository root:
 ## License
 
 This project is provided for experimentation and is not yet production ready.
+
 

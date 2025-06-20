@@ -16,14 +16,11 @@ if(NOT APPLE)
 endif()
 
 # Options
-option(BUILD_FOR_IOS "Build for iOS instead of macOS" OFF)
+option(BUILD_IOS_ONLY "Build only the iOS target" OFF)
+option(BUILD_MAC_ONLY "Build only the macOS target" OFF)
 
-# Set deployment target
-if(BUILD_FOR_IOS)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0")
-    set(CMAKE_OSX_ARCHITECTURES "arm64")
-else()
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0")
+if(BUILD_IOS_ONLY AND BUILD_MAC_ONLY)
+    message(FATAL_ERROR "Only one of BUILD_IOS_ONLY or BUILD_MAC_ONLY can be ON")
 endif()
 
 # Output directories
@@ -65,41 +62,52 @@ set(METAL_SOURCES
 )
 
 # Platform-specific sources
-if(BUILD_FOR_IOS)
-    set(PLATFORM_SOURCES
-        src/Platform/iOS/main.mm
-        src/Platform/iOS/AppDelegate.mm
-        src/Platform/iOS/GameViewController.mm
-    )
-else()
-    set(PLATFORM_SOURCES
-        src/Platform/macOS/main.mm
+set(MACOS_SOURCES
+    src/Platform/macOS/main.mm
+    src/Platform/macOS/AppDelegate.mm
+    src/Platform/macOS/GameViewController.mm
+)
+
+set(IOS_SOURCES
+    src/Platform/iOS/main.mm
+    src/Platform/iOS/AppDelegate.mm
+    src/Platform/iOS/GameViewController.mm
+)
+
+# Shaders
+file(GLOB SHADER_FILES ${CMAKE_SOURCE_DIR}/shaders/*.metal)
+
+add_custom_target(Shaders
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/compile_shaders.sh --all
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Compiling Metal shaders"
+)
+
+########################################################################
+# Targets
+########################################################################
+
+if(NOT BUILD_IOS_ONLY)
+    add_executable(FinalStorm-macOS MACOSX_BUNDLE
+        ${CORE_SOURCES}
+        ${METAL_SOURCES}
+        ${MACOS_SOURCES}
     )
 endif()
 
-# Create executable
-add_executable(FinalStorm MACOSX_BUNDLE
-    ${CORE_SOURCES}
-    ${METAL_SOURCES}
-    ${PLATFORM_SOURCES}
-)
+if(NOT BUILD_MAC_ONLY)
+    add_executable(FinalStorm-iOS MACOSX_BUNDLE
+        ${CORE_SOURCES}
+        ${METAL_SOURCES}
+        ${IOS_SOURCES}
+    )
+endif()
 
-# Set bundle properties
-set_target_properties(FinalStorm PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm"
-    MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm"
-    MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0"
-    MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
-)
+########################################################################
+# Target configuration
+########################################################################
 
-# Include directories
-target_include_directories(FinalStorm PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-# Link frameworks
-target_link_libraries(FinalStorm PRIVATE
+set(COMMON_FRAMEWORKS
     "-framework Foundation"
     "-framework Metal"
     "-framework MetalKit"
@@ -108,43 +116,87 @@ target_link_libraries(FinalStorm PRIVATE
     Threads::Threads
 )
 
-if(BUILD_FOR_IOS)
-    target_link_libraries(FinalStorm PRIVATE
-        "-framework UIKit"
-        "-framework ARKit"
+if(NOT BUILD_IOS_ONLY)
+    set_target_properties(FinalStorm-macOS PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm"
+        MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm"
+        MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
+        MACOSX_DEPLOYMENT_TARGET "11.0"
     )
-else()
-    target_link_libraries(FinalStorm PRIVATE
+    target_include_directories(FinalStorm-macOS PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(FinalStorm-macOS PRIVATE
+        ${COMMON_FRAMEWORKS}
         "-framework Cocoa"
         "-framework AppKit"
     )
+    target_compile_definitions(FinalStorm-macOS PRIVATE USE_SIMD)
+    add_dependencies(FinalStorm-macOS Shaders)
+    add_custom_command(TARGET FinalStorm-macOS POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
+    )
+    add_custom_command(TARGET FinalStorm-macOS POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/shaders
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders
+    )
 endif()
 
-# Compile definitions
-target_compile_definitions(FinalStorm PRIVATE
-    USE_SIMD  # Use Apple's SIMD types
-)
+if(NOT BUILD_MAC_ONLY)
+    set_target_properties(FinalStorm-iOS PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.finalverse.finalstorm"
+        MACOSX_BUNDLE_BUNDLE_NAME "FinalStorm"
+        MACOSX_BUNDLE_BUNDLE_VERSION "0.1.0"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.1"
+        MACOSX_DEPLOYMENT_TARGET "14.0"
+        OSX_ARCHITECTURES "arm64"
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
+    )
+    target_include_directories(FinalStorm-iOS PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(FinalStorm-iOS PRIVATE
+        ${COMMON_FRAMEWORKS}
+        "-framework UIKit"
+        "-framework ARKit"
+    )
+    target_compile_definitions(FinalStorm-iOS PRIVATE USE_SIMD)
+    add_dependencies(FinalStorm-iOS Shaders)
+    add_custom_command(TARGET FinalStorm-iOS POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/assets
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
+    )
+    add_custom_command(TARGET FinalStorm-iOS POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/shaders
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders
+    )
+endif()
 
-# Copy shaders to build directory
-add_custom_command(TARGET FinalStorm POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/shaders
-    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders
-)
-
-# Copy assets to build directory
-add_custom_command(TARGET FinalStorm POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/assets
-    ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
-)
-
+########################################################################
 # Installation
-install(TARGETS FinalStorm
-    BUNDLE DESTINATION .
-    RUNTIME DESTINATION bin
-)
+########################################################################
 
-# Install shaders and assets
+if(NOT BUILD_IOS_ONLY)
+    install(TARGETS FinalStorm-macOS
+        BUNDLE DESTINATION .
+        RUNTIME DESTINATION bin
+    )
+endif()
+
+if(NOT BUILD_MAC_ONLY)
+    install(TARGETS FinalStorm-iOS
+        BUNDLE DESTINATION .
+        RUNTIME DESTINATION bin
+    )
+endif()
+
 install(DIRECTORY shaders DESTINATION bin)
-install(DIRECTORY assets DESTINATION bin)        
+install(DIRECTORY assets DESTINATION bin)

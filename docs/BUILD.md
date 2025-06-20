@@ -9,6 +9,8 @@ both macOS and iOS targets.
 ```
 
 This script generates a `build/` directory and optionally opens
-`FinalStorm.xcodeproj` when the `--open` flag is supplied. Pass `--ios`
-to configure for the iOS SDK. After configuring you can build either
+`FinalStorm.xcodeproj` when the `--open` flag is supplied. By default the
+project contains both macOS and iOS targets. You can restrict generation
+using `--ios-only` or `--mac-only`. After configuring you can build either
 from Xcode or via `cmake --build`.
+
