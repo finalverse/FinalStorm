@@ -1,7 +1,7 @@
 // Rendering/Camera.h
 #pragma once
 
-#include "Core/MathTypes.h"
+#include "Core/Math/MathTypes.h"
 #include "Core/Transform.h"
 
 namespace FinalStorm {

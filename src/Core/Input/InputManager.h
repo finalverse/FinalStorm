@@ -1,7 +1,7 @@
 // Core/Input/InputManager.h
 #pragma once
 
-#include "Core/MathTypes.h"
+#include "Core/Math/MathTypes.h"
 #include <functional>
 #include <unordered_map>
 #include <vector>
