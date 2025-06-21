@@ -4,8 +4,9 @@
 
 #include "FinalStormApp.h"
 #include "Scene/Scene.h"
-#include "Services/ServiceFactory.h"
-#include "Environment/EnvironmentController.h"
+#include "Scene/SceneLoader.h"
+#include "World/WorldManager.h"
+#include "Rendering/Metal/MetalRenderer.h"
 #include <iostream>
 
 namespace FinalStorm {
@@ -30,23 +31,25 @@ bool FinalStormApp::initialize(std::shared_ptr<Renderer> rend) {
         return false;
     }
     
-    // Create scene
-    scene = std::make_shared<Scene>();
-    
-    // Create scene manager
-    sceneManager = std::make_unique<SceneManager>(scene, renderer);
-    
+    // Create world manager
+    worldManager = std::make_unique<WorldManager>();
+
     // Create networking client
     networkClient = std::make_unique<FinalverseClient>();
-    
+
+    // Create scene loader
+    auto* metalRenderer = dynamic_cast<MetalRenderer*>(renderer.get());
+    sceneLoader = std::make_unique<SceneLoader>(worldManager.get(), metalRenderer, networkClient.get());
+
+    // Load the first scene and set it active
+    sceneLoader->loadFirstScene();
+    scene = std::shared_ptr<Scene>(sceneLoader->getCurrentScene(), [](Scene*){});
+
+    // Create scene manager
+    sceneManager = std::make_unique<SceneManager>(scene, renderer);
+
     // Create input manager
     inputManager = std::make_unique<InteractionManager>();
-    
-    // Initialize subsystems
-    if (!initializeScene()) {
-        std::cerr << "Failed to initialize scene!" << std::endl;
-        return false;
-    }
     
     isRunning = true;
     return true;
@@ -132,54 +135,5 @@ bool FinalStormApp::connectToServer(const std::string& url) {
     return networkClient->connect(url);
 }
 
-bool FinalStormApp::initializeScene() {
-    // Create environment
-    auto environment = std::make_shared<EnvironmentController>();
-    scene->getRoot()->addChild(environment);
-    
-    // Create service discovery UI
-    auto discoveryUI = std::make_shared<ServiceDiscoveryUI>();
-    discoveryUI->setPosition(float3(0, 2, -5));
-    scene->getRoot()->addChild(discoveryUI);
-    
-    // Create some test services
-    createTestServices();
-    
-    // Setup camera
-    setupCamera();
-    
-    return true;
-}
-
-void FinalStormApp::createTestServices() {
-    ServiceFactory factory;
-    
-    // Create API Gateway visualization
-    auto apiGateway = factory.createService(ServiceType::APIGateway);
-    apiGateway->setPosition(float3(-5, 0, 0));
-    scene->getRoot()->addChild(apiGateway);
-    
-    // Create World Engine visualization
-    auto worldEngine = factory.createService(ServiceType::WorldEngine);
-    worldEngine->setPosition(float3(0, 0, 0));
-    scene->getRoot()->addChild(worldEngine);
-    
-    // Create AI Service visualization
-    auto aiService = factory.createService(ServiceType::AIService);
-    aiService->setPosition(float3(5, 0, 0));
-    scene->getRoot()->addChild(aiService);
-}
-
-void FinalStormApp::setupCamera() {
-    if (!sceneManager) {
-        return;
-    }
-    
-    auto& camera = sceneManager->getCamera();
-    camera.setPosition(float3(0, 5, 10));
-    camera.lookAt(float3(0, 5, 10), float3(0, 0, 0), float3(0, 1, 0));
-    camera.setFOV(Math::radians(60.0f));
-    camera.setNearFar(0.1f, 1000.0f);
-}
 
 } // namespace FinalStorm
