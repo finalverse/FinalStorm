@@ -13,6 +13,8 @@ class SceneManager;
 class Renderer;
 class FinalverseClient;
 class InteractionManager;
+class WorldManager;
+class SceneLoader;
 struct InputEvent;
 
 class FinalStormApp {
@@ -34,9 +36,9 @@ public:
     bool isRunning() const { return isRunning; }
     
 private:
-    bool initializeScene();
-    void createTestServices();
-    void setupCamera();
+
+    std::unique_ptr<WorldManager> worldManager;
+    std::unique_ptr<SceneLoader> sceneLoader;
     
     std::shared_ptr<Renderer> renderer;
     std::shared_ptr<Scene> scene;
