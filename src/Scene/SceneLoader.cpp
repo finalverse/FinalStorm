@@ -280,38 +280,17 @@ void ScenePreloader::loadMeshes(const std::string& sceneName) {
         m_renderer->generateMesh(MeshLibrary::SPHERE, "sphere", 32, 32);
         m_renderer->generateMesh(MeshLibrary::CUBE, "cube");
         
-        // Special meshes
-        m_renderer->generateMesh(Mesh    void loadTextures(const std::string& sceneName);
-    void loadMeshes(const std::string& sceneName);
-    void loadShaders(const std::string& sceneName);
-};
 
-/**
- * FirstSceneConfig - Configuration for the first scene
- */
-struct FirstSceneConfig {
-    // Visual settings
-    bool showWelcomeSequence = true;
-    float nexusScale = 1.0f;
-    float serviceRingRadius = 12.0f;
-    
-    // Environment settings
-    glm::vec3 nebulaPrimaryColor = glm::vec3(0.1f, 0.2f, 0.4f);
-    glm::vec3 nebulaSecondaryColor = glm::vec3(0.4f, 0.1f, 0.3f);
-    float nebulaDensity = 0.7f;
-    
-    // Service settings
-    bool autoDiscoverServices = true;
-    float serviceUpdateInterval = 1.0f;
-    
-    // Camera settings
-    glm::vec3 defaultCameraPosition = glm::vec3(15, 10, 15);
-    glm::vec3 defaultCameraLookAt = glm::vec3(0, 0, 0);
-    float defaultCameraFOV = 60.0f;
-    
-    // User preferences
-    static FirstSceneConfig loadFromPreferences();
-    void saveToPreferences() const;
-};
+        // Special meshes
+        m_renderer->generateMesh(MeshLibrary::GRID, "grid");
+        m_renderer->generateMesh(MeshLibrary::SKYBOX, "skybox");
+    }
+}
+
+void ScenePreloader::loadShaders(const std::string& sceneName) {
+    if (sceneName == "TheNexus") {
+        // TODO: Load Metal shader pipelines for The Nexus scene
+    }
+}
 
 } // namespace FinalStorm
