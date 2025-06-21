@@ -8,7 +8,8 @@
 #pragma once
 
 #include "World/Entity.h"
-#include "Core/Math/Math.h"
+#include "Core/Math/MathTypes.h"
+#include "Core/Math/Camera.h"
 #include <vector>
 #include <unordered_map>
 #include <memory>
@@ -18,6 +19,9 @@ namespace FinalStorm {
 struct GridCoordinate {
     int32_t x;
     int32_t y;
+    
+    GridCoordinate() : x(0), y(0) {}
+    GridCoordinate(int32_t x, int32_t y) : x(x), y(y) {}
     
     bool operator==(const GridCoordinate& other) const {
         return x == other.x && y == other.y;
@@ -39,12 +43,14 @@ public:
     Grid(const GridCoordinate& coord);
     
     void addEntity(EntityPtr entity);
-    void removeEntity(uint64_t entityId);
-    const std::vector<EntityPtr>& getEntities() const { return m_entities; }
+    void removeEntity(uint32_t entityId);
+    const std::vector<EntityPtr>& getEntities() const { return entities; }
+    
+    const GridCoordinate& getCoordinate() const { return coordinate; }
     
 private:
-    GridCoordinate m_coordinate;
-    std::vector<EntityPtr> m_entities;
+    GridCoordinate coordinate;
+    std::vector<EntityPtr> entities;
 };
 
 class WorldManager {
@@ -55,30 +61,36 @@ public:
     void update(float deltaTime);
     
     void addEntity(EntityPtr entity);
-    void removeEntity(uint64_t entityId);
-    EntityPtr getEntity(uint64_t entityId) const;
+    void removeEntity(uint32_t entityId);
+    EntityPtr getEntity(uint32_t entityId) const;
     
     std::vector<EntityPtr> getVisibleEntities(const Camera& camera) const;
+    std::vector<EntityPtr> getEntitiesInRadius(const vec3& center, float radius) const;
     
     void loadGrid(const GridCoordinate& coord);
     void unloadGrid(const GridCoordinate& coord);
     
+    // Get all entities (for simple iteration)
+    const std::vector<EntityPtr>& getAllEntities() const { return entities; }
+    
 private:
-    // Add these private methods
+    // Private methods
     Grid* getGrid(const GridCoordinate& coord) const;
-    GridCoordinate getGridFromPosition(const float3& position) const;
+    GridCoordinate getGridFromPosition(const vec3& position) const;
     void onPlayerGridChange(const GridCoordinate& oldGrid, const GridCoordinate& newGrid);
     void generateGridContent(const GridCoordinate& coord, Grid& grid);
     
-    std::unordered_map<uint64_t, EntityPtr> m_entities;
-    std::unordered_map<GridCoordinate, std::unique_ptr<Grid>, GridCoordinateHash> m_grids;
+    // Entity storage - using simple vector for now, can optimize to grid later
+    std::vector<EntityPtr> entities;
+    std::unordered_map<GridCoordinate, std::unique_ptr<Grid>, GridCoordinateHash> grids;
     
     // Player tracking
-    EntityPtr m_playerEntity;
-    GridCoordinate m_currentGrid;
+    EntityPtr playerEntity;
+    GridCoordinate currentGrid;
     
-    // Add this member variable
-    int m_viewDistance;
+    // Configuration
+    int viewDistance;
+    static constexpr float GRID_SIZE = 256.0f; // Size of each grid cell in world units
 };
 
 } // namespace FinalStorm

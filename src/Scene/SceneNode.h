@@ -1,73 +1,86 @@
-#pragma once
+// src/Scene/SceneNode.h
+// Scene graph node base class
+// Hierarchical scene organization
 
-#include "Core/Math/Math.h"
+#pragma once
+#include "Core/Math/MathTypes.h"
 #include "Core/Math/Transform.h"
-#include "World/Entity.h"
-#include <memory>
+#include <string>
 #include <vector>
+#include <memory>
 
 namespace FinalStorm {
 
-class Renderer; // forward declaration
+class RenderContext;
+class Camera;
 
-// Basic scene graph node with transform hierarchy
-class SceneNode : public std::enable_shared_from_this<SceneNode> {
+class SceneNode {
 public:
-    using NodePtr = std::shared_ptr<SceneNode>;
-    using NodeList = std::vector<NodePtr>;
-
-    SceneNode();
+    SceneNode(const std::string& name = "SceneNode");
     virtual ~SceneNode() = default;
-
-    // Transform operations
-    void setPosition(const float3& pos);
-    void setRotation(const float4& rot);
-    void setScale(const float3& s);
-    void translate(const float3& delta);
-    void rotate(const float4& quat);
-
-    // Hierarchy management
-    void addChild(NodePtr child);
-    void removeChild(NodePtr child);
-    void clearChildren();
-    const NodeList& getChildren() const { return m_children; }
-
-    SceneNode* getParent() const { return m_parent.lock().get(); }
-
-    // World transform helpers
-    float4x4 getWorldMatrix() const;
-    float3 getWorldPosition() const;
-
-    // Entity attachment
-    void setEntity(EntityPtr entity) { m_entity = entity; }
-    EntityPtr getEntity() const { return m_entity; }
-
+    
+    // Hierarchy
+    void addChild(std::shared_ptr<SceneNode> child);
+    void removeChild(std::shared_ptr<SceneNode> child);
+    void removeAllChildren();
+    
+    std::shared_ptr<SceneNode> getParent() const { return m_parent.lock(); }
+    const std::vector<std::shared_ptr<SceneNode>>& getChildren() const { return m_children; }
+    
+    // Transform
+    const Transform& getLocalTransform() const { return m_localTransform; }
+    Transform& getLocalTransform() { return m_localTransform; }
+    
+    mat4 getWorldMatrix() const;
+    vec3 getWorldPosition() const;
+    quat getWorldRotation() const;
+    
+    // Convenience transform methods
+    void setPosition(const vec3& position) { m_localTransform.setPosition(position); }
+    void setRotation(const quat& rotation) { m_localTransform.setRotation(rotation); }
+    void setScale(const vec3& scale) { m_localTransform.setScale(scale); }
+    
+    vec3 getPosition() const { return m_localTransform.position; }
+    quat getRotation() const { return m_localTransform.rotation; }
+    vec3 getScale() const { return m_localTransform.scale; }
+    
+    void translate(const vec3& delta) { m_localTransform.translate(delta); }
+    void rotate(const quat& rotation) { m_localTransform.rotate(rotation); }
+    
+    // Properties
+    const std::string& getName() const { return m_name; }
+    void setName(const std::string& name) { m_name = name; }
+    
     bool isVisible() const { return m_visible; }
-    void setVisible(bool v) { m_visible = v; }
-
+    void setVisible(bool visible) { m_visible = visible; }
+    
     // Update and render
     virtual void update(float deltaTime);
-    virtual void render(Renderer* renderer);
-
+    virtual void render(RenderContext& context);
+    
+    // Frustum culling
+    bool isInFrustum(const Camera& camera) const;
+    
 protected:
+    // Override these in derived classes
     virtual void onUpdate(float deltaTime) {}
-    virtual void onRender(Renderer* renderer) {}
-
-    void markDirty();
-    void updateWorldTransform() const;
-
-    std::weak_ptr<SceneNode> m_parent;
-    NodeList m_children;
-
-    float3 m_position;
-    float4 m_rotation;
-    float3 m_scale;
-
-    mutable float4x4 m_worldMatrix;
-    mutable bool m_dirty;
+    virtual void onRender(RenderContext& context) {}
+    
+private:
+    std::string m_name;
+    Transform m_localTransform;
     bool m_visible;
-
-    EntityPtr m_entity;
+    
+    std::weak_ptr<SceneNode> m_parent;
+    std::vector<std::shared_ptr<SceneNode>> m_children;
+    
+    mutable mat4 m_cachedWorldMatrix;
+    mutable bool m_worldMatrixDirty;
+    
+    void markWorldMatrixDirty();
+    void updateWorldMatrix() const;
 };
+
+using SceneNodePtr = std::shared_ptr<SceneNode>;
 
 } // namespace FinalStorm

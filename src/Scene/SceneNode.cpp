@@ -1,152 +1,116 @@
 // src/Scene/SceneNode.cpp
-// Base scene graph node implementation
-// Provides hierarchical transform management and scene traversal
+// Scene graph node implementation
+// Hierarchical scene organization
 
 #include "Scene/SceneNode.h"
+#include "Rendering/RenderContext.h"
+#include "Core/Math/Camera.h"
 #include <algorithm>
 
 namespace FinalStorm {
 
-uint32_t SceneNode::nextId = 1;
-
-SceneNode::SceneNode(const std::string& nodeName)
-    : id(nextId++)
-    , name(nodeName)
-    , parent(nullptr)
-    , visible(true)
-    , worldTransformDirty(true) {
-}
-
-SceneNode::~SceneNode() {
-    // Remove from parent if attached
-    if (parent) {
-        parent->removeChild(this);
-    }
-    
-    // Clear children
-    children.clear();
+SceneNode::SceneNode(const std::string& name)
+    : m_name(name)
+    , m_visible(true)
+    , m_worldMatrixDirty(true) {
 }
 
 void SceneNode::addChild(std::shared_ptr<SceneNode> child) {
-    if (!child || child.get() == this) {
-        return;
-    }
+    if (!child) return;
     
     // Remove from previous parent
-    if (child->parent) {
-        child->parent->removeChild(child.get());
+    if (auto oldParent = child->getParent()) {
+        oldParent->removeChild(child);
     }
     
-    // Add to our children
-    children.push_back(child);
-    child->parent = this;
-    child->worldTransformDirty = true;
+    // Add to this node
+    child->m_parent = std::weak_ptr<SceneNode>(shared_from_this());
+    m_children.push_back(child);
+    child->markWorldMatrixDirty();
 }
 
-void SceneNode::removeChild(SceneNode* child) {
-    auto it = std::find_if(children.begin(), children.end(),
-        [child](const std::shared_ptr<SceneNode>& node) {
-            return node.get() == child;
-        });
-    
-    if (it != children.end()) {
-        (*it)->parent = nullptr;
-        (*it)->worldTransformDirty = true;
-        children.erase(it);
+void SceneNode::removeChild(std::shared_ptr<SceneNode> child) {
+    auto it = std::find(m_children.begin(), m_children.end(), child);
+    if (it != m_children.end()) {
+        (*it)->m_parent.reset();
+        m_children.erase(it);
     }
 }
 
-std::shared_ptr<SceneNode> SceneNode::findChild(const std::string& childName) const {
-    for (const auto& child : children) {
-        if (child->name == childName) {
-            return child;
-        }
+void SceneNode::removeAllChildren() {
+    for (auto& child : m_children) {
+        child->m_parent.reset();
     }
-    return nullptr;
+    m_children.clear();
+}
+
+mat4 SceneNode::getWorldMatrix() const {
+    if (m_worldMatrixDirty) {
+        updateWorldMatrix();
+    }
+    return m_cachedWorldMatrix;
+}
+
+vec3 SceneNode::getWorldPosition() const {
+    mat4 worldMat = getWorldMatrix();
+    return make_vec3(worldMat.columns[3].x, worldMat.columns[3].y, worldMat.columns[3].z);
+}
+
+quat SceneNode::getWorldRotation() const {
+    // Extract rotation from world matrix
+    // For now, just return local rotation (simplified)
+    if (auto parent = getParent()) {
+        return simd_mul(parent->getWorldRotation(), m_localTransform.rotation);
+    }
+    return m_localTransform.rotation;
 }
 
 void SceneNode::update(float deltaTime) {
+    if (!m_visible) return;
+    
     // Update this node
     onUpdate(deltaTime);
     
     // Update children
-    for (auto& child : children) {
-        if (child->visible) {
-            child->update(deltaTime);
-        }
+    for (auto& child : m_children) {
+        child->update(deltaTime);
     }
 }
 
 void SceneNode::render(RenderContext& context) {
-    if (!visible) {
-        return;
-    }
+    if (!m_visible) return;
     
     // Render this node
     onRender(context);
     
     // Render children
-    for (auto& child : children) {
+    for (auto& child : m_children) {
         child->render(context);
     }
 }
 
-void SceneNode::setLocalTransform(const Transform& t) {
-    localTransform = t;
-    worldTransformDirty = true;
-    markChildrenDirty();
+bool SceneNode::isInFrustum(const Camera& camera) const {
+    // Simple point-in-frustum test using world position
+    vec3 worldPos = getWorldPosition();
+    return camera.isInFrustum(worldPos);
 }
 
-void SceneNode::setPosition(const float3& pos) {
-    localTransform.setPosition(pos);
-    worldTransformDirty = true;
-    markChildrenDirty();
-}
-
-void SceneNode::setRotation(const quaternion& rot) {
-    localTransform.setRotation(rot);
-    worldTransformDirty = true;
-    markChildrenDirty();
-}
-
-void SceneNode::setScale(const float3& scale) {
-    localTransform.setScale(scale);
-    worldTransformDirty = true;
-    markChildrenDirty();
-}
-
-Transform SceneNode::getWorldTransform() const {
-    if (worldTransformDirty) {
-        updateWorldTransform();
+void SceneNode::markWorldMatrixDirty() {
+    m_worldMatrixDirty = true;
+    
+    // Mark all children dirty too
+    for (auto& child : m_children) {
+        child->markWorldMatrixDirty();
     }
-    return worldTransform;
 }
 
-float4x4 SceneNode::getWorldMatrix() const {
-    return getWorldTransform().getMatrix();
-}
-
-void SceneNode::updateWorldTransform() const {
-    if (parent) {
-        float4x4 parentWorld = parent->getWorldMatrix();
-        float4x4 localMatrix = localTransform.getMatrix();
-        float4x4 worldMatrix = parentWorld * localMatrix;
-        
-        // Decompose world matrix back to transform
-        // This is simplified - proper decomposition would extract rotation/scale properly
-        worldTransform.setPosition(float3(worldMatrix[3][0], worldMatrix[3][1], worldMatrix[3][2]));
-        // TODO: Proper matrix decomposition for rotation and scale
+void SceneNode::updateWorldMatrix() const {
+    if (auto parent = getParent()) {
+        m_cachedWorldMatrix = simd_mul(parent->getWorldMatrix(), m_localTransform.getMatrix());
     } else {
-        worldTransform = localTransform;
+        m_cachedWorldMatrix = m_localTransform.getMatrix();
     }
-    worldTransformDirty = false;
-}
-
-void SceneNode::markChildrenDirty() {
-    for (auto& child : children) {
-        child->worldTransformDirty = true;
-        child->markChildrenDirty();
-    }
+    m_worldMatrixDirty = false;
 }
 
 } // namespace FinalStorm

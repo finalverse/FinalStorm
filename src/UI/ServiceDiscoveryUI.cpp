@@ -1,64 +1,59 @@
-// src/UI/ServiceDiscoveryUI.cpp
-// Service discovery UI implementation
-// Interactive orb for discovering and connecting to services
+// src/UI/InteractiveOrb.cpp
+// Interactive orb UI element implementation
+// Clickable 3D orb for user interaction
 
-#include "UI/ServiceDiscoveryUI.h"
 #include "UI/InteractiveOrb.h"
 #include "Rendering/RenderContext.h"
-#include "Core/Math/Math.h"
+#include "Core/Math/MathTypes.h"
+#include <cmath>
 
 namespace FinalStorm {
 
-ServiceDiscoveryUI::ServiceDiscoveryUI()
-    : SceneNode("Service Discovery")
-    , isExpanded(false)
-    , animationTime(0.0f) {
+InteractiveOrb::InteractiveOrb(float radius)
+    : SceneNode("Interactive Orb")
+    , m_radius(radius)
+    , m_glowColor(make_vec3(0.2f, 0.8f, 1.0f))
+    , m_pulseSpeed(2.0f)
+    , m_pulsePhase(0.0f) {
 }
 
-ServiceDiscoveryUI::~ServiceDiscoveryUI() = default;
+InteractiveOrb::~InteractiveOrb() = default;
 
-void ServiceDiscoveryUI::onUpdate(float deltaTime) {
-    animationTime += deltaTime;
+void InteractiveOrb::activate() {
+    if (m_onActivate) {
+        m_onActivate();
+    }
     
-    // Rotate the discovery orb
-    setRotation(quaternion(animationTime * 0.5f, float3(0, 1, 0)));
+    // Visual feedback
+    m_pulsePhase = 0.0f;
+    m_pulseSpeed = 8.0f; // Quick pulse on activation
 }
 
-void ServiceDiscoveryUI::onRender(RenderContext& context) {
+void InteractiveOrb::onUpdate(float deltaTime) {
+    m_pulsePhase += deltaTime * m_pulseSpeed;
+    
+    // Decay pulse speed back to normal
+    if (m_pulseSpeed > 2.0f) {
+        m_pulseSpeed = lerp(m_pulseSpeed, 2.0f, deltaTime * 3.0f);
+    }
+    
+    // Gentle rotation
+    quat rotation = simd_quaternion(deltaTime * 0.5f, make_vec3(0, 1, 0));
+    setRotation(getRotation() * rotation);
+}
+
+void InteractiveOrb::onRender(RenderContext& context) {
     context.pushTransform(getWorldMatrix());
     
-    // Render central orb
-    float pulse = 0.8f + 0.2f * sinf(animationTime * 2.0f);
-    context.setColor(float4(0.2f, 0.8f, 1.0f, 1.0f) * pulse);
-    context.drawSphere(0.5f);
+    // Pulsing glow effect
+    float pulse = 0.8f + 0.2f * sinf(m_pulsePhase);
+    vec4 color = make_vec4(m_glowColor.x, m_glowColor.y, m_glowColor.z, 1.0f);
+    color *= pulse;
     
-    // Render service icons if expanded
-    if (isExpanded) {
-        renderServiceRing(context);
-    }
+    context.setColor(color);
+    context.drawSphere(m_radius);
     
     context.popTransform();
-}
-
-void ServiceDiscoveryUI::toggleExpanded() {
-    isExpanded = !isExpanded;
-}
-
-void ServiceDiscoveryUI::renderServiceRing(RenderContext& context) {
-    const float radius = 3.0f;
-    const int serviceCount = 8;
-    
-    for (int i = 0; i < serviceCount; ++i) {
-        float angle = (float(i) / float(serviceCount)) * 2.0f * M_PI;
-        float x = cosf(angle) * radius;
-        float z = sinf(angle) * radius;
-        
-        context.pushTransform(float4x4(1.0f));
-        context.translate(float3(x, 0, z));
-        context.setColor(float4(0.5f, 0.8f, 1.0f, 0.8f));
-        context.drawCube(0.3f);
-        context.popTransform();
-    }
 }
 
 } // namespace FinalStorm

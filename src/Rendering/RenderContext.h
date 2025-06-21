@@ -19,14 +19,14 @@ public:
     virtual void setCamera(const Camera& camera) = 0;
     
     // Transform stack
-    virtual void pushTransform(const float4x4& transform) = 0;
+    virtual void pushTransform(const mat4& transform) = 0;
     virtual void popTransform() = 0;
-    virtual void translate(const float3& translation) = 0;
-    virtual void rotate(const quaternion& rotation) = 0;
-    virtual void scale(const float3& scale) = 0;
+    virtual void translate(const vec3& translation) = 0;
+    virtual void rotate(const quat& rotation) = 0;
+    virtual void scale(const vec3& scale) = 0;
     
     // State
-    virtual void setColor(const float4& color) = 0;
+    virtual void setColor(const vec4& color) = 0;
     
     // Drawing
     virtual void drawMesh(Mesh* mesh) = 0;
