@@ -124,4 +124,14 @@ public:
     }
 };
 
+// Simple ambient light implemented as a point light with default
+// range and intensity.  This is mainly a convenience type used by
+// scenes that expect an "ambient" light object.
+class AmbientLight : public Light {
+public:
+    AmbientLight() : Light(LightType::Point) {
+        // Inherit default range and intensity from Light
+    }
+};
+
 } // namespace FinalStorm
