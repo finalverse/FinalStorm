@@ -52,6 +52,11 @@ set(CORE_SOURCES
     src/Core/Audio/AudioEngine.cpp
     src/Core/Audio/SpatialAudioSystem.cpp
     src/Visual/DataVisualizer.cpp
+    src/Services/Components/ParticleEmitter.cpp
+    src/Services/Components/ConnectionBeam.cpp
+    src/Services/Components/ConnectionBeamRendering.cpp
+    src/Services/Components/BeamMesh.cpp
+    src/Services/Components/EnergyRing.cpp
 )
 
 set(METAL_SOURCES
