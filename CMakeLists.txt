@@ -57,6 +57,11 @@ set(CORE_SOURCES
     src/Services/Components/ConnectionBeamRendering.cpp
     src/Services/Components/BeamMesh.cpp
     src/Services/Components/EnergyRing.cpp
+    src/Scene/Scenes/FirstScene.cpp
+    src/Scene/Scenes/CentralNexus.cpp
+    src/Scene/Scenes/ServiceRing.cpp
+    src/Scene/Scenes/InteractiveGuide.cpp
+    src/Scene/Scenes/WelcomeSequence.cpp
 )
 
 set(METAL_SOURCES
