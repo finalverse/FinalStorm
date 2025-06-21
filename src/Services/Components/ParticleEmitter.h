@@ -1,10 +1,10 @@
 #pragma once
-#include "World/Entity.h"
+#include "Scene/SceneNode.h"
 #include <glm/glm.hpp>
 
 namespace FinalStorm {
 
-class ParticleEmitter : public Entity {
+class ParticleEmitter : public SceneNode {
 public:
     enum class Shape {
         POINT,
@@ -36,7 +36,7 @@ public:
     
     void burst(int count);
     void setEmitRate(float rate);
-    void setEmitPosition(const glm::vec3& pos) { transform.position = pos; }
+    void setEmitPosition(const glm::vec3& pos) { setPosition(pos); }
     void setEmitShape(Shape shape) { m_config.emitShape = shape; }
     void setParticleColor(const glm::vec4& color) { m_config.startColor = color; }
     void setParticleLifetime(float lifetime) { m_config.particleLifetime = lifetime; }
