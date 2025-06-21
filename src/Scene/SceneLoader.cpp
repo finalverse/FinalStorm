@@ -50,13 +50,13 @@ void SceneLoader::loadScene(const std::string& sceneName) {
 }
 
 void SceneLoader::loadFirstScene() {
-    // Load configuration
-    FirstSceneConfig config = FirstSceneConfig::loadFromPreferences();
-    
+    // Configuration can be loaded from preferences in the future
+    FirstSceneConfig config{};
+
     // Create the first scene with config
     auto createFirstScene = [config]() -> std::unique_ptr<Scene> {
         auto scene = std::make_unique<FirstScene>();
-        
+
         // Apply configuration
         // TODO: Add config setters to FirstScene
         
