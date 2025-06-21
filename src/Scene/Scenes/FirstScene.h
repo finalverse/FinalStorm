@@ -205,6 +205,7 @@ private:
     void updateServices(float deltaTime);
     void updateConnections(float deltaTime);
     void updateParticleEffects(float deltaTime);
+    void updateAmbientOrbs(float deltaTime);
     void updateNetworking(float deltaTime);
     void updateAudio(float deltaTime);
     void updateScheduledActions(float deltaTime);

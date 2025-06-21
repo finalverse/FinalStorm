@@ -763,6 +763,26 @@ void FirstScene::updateParticleEffects(float deltaTime) {
     updateAmbientOrbs(deltaTime);
 }
 
+void FirstScene::updateAmbientOrbs(float deltaTime) {
+    m_ambientLightPhase += deltaTime * 0.5f;
+
+    for (size_t i = 0; i < m_ambientOrbs.size(); ++i) {
+        auto& orb = m_ambientOrbs[i];
+        if (!orb)
+            continue;
+
+        float phase = m_ambientLightPhase + i * 0.5f;
+
+        // Gentle pulsing scale
+        float scale = 1.0f + 0.05f * sinf(phase * 1.5f);
+        orb->setScale(make_vec3(scale));
+
+        // Subtle glow variation
+        float glow = 0.4f + 0.2f * sinf(phase);
+        orb->setGlowIntensity(glow);
+    }
+}
+
 void FirstScene::updateNetworking(float deltaTime) {
     // Update network client and handle incoming data
     if (m_finalverseClient && m_finalverseClient->isConnected()) {
